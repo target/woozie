@@ -201,14 +201,7 @@ variables not defined in the configuration file."
 
 (defun oozie--properties-from-file (config-file)
   "Returns a list of properties defined in CONFIG-FILE"
-  (let ( (cbuff (current-buffer)) )
-    (find-file config-file)
-    (save-excursion
-      (goto-char (point-min))
-      (let (* (start (point) )
-	      (end (progn (search-forward "=" nil 't) (backward-char) (point)))
-
-
+)
 
     
 (defun oozie--msg (msg)
