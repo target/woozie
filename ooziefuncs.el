@@ -165,7 +165,6 @@
     (message "%d vars extracted, %d new, %d already present." (length wf-vars) (length new-vars) (- (length wf-vars) (length new-vars)))))
 
 
-;;TODO
 (defun oozie-validate-wf ()
   "
 Validates the current workflow, checking:
@@ -179,13 +178,12 @@ Validates the current workflow, checking:
   (oozie--validate-action-transitions)
   )
 
-;;TODO
 (defun oozie-validate-wf-config (config-file)
   "
 Validates the workflow definiton in the current buffer
 agains the specified CONFIG-FILE. Provides a list of 
 variables not defined in the configuration file."
-  (interactive "\fConfig file: ")
+  (interactive "fConfig file: ")
   (let* ( (wf-vars (oozie-workflow-vars) )
 	  (config-vars (oozie--properties-from-file config-file))
 	  (missing-vars (cl-set-difference wf-vars config-vars :test 'string=)))
@@ -201,8 +199,18 @@ variables not defined in the configuration file."
 
 (defun oozie--properties-from-file (config-file)
   "Returns a list of properties defined in CONFIG-FILE"
-)
+  (let ( (lines (oozie--file-as-line-list config-file))
+	 (props '() ))
+    (dolist (line lines)
+      (if (not (string-prefix-p "#" line))
+	  (setq props (cons (substring line 0 (string-match "=" line)) props))))
+    props))
 
+(defun oozie--file-as-line-list (filename)
+  (with-temp-buffer
+    (insert-file-contents filename)
+    (split-string (buffer-string) "\n" t)))
+  
     
 (defun oozie--msg (msg)
   "Prints MSG in the oozie message screen"
