@@ -169,7 +169,7 @@ Validates the workflow definiton in the current buffer
 agains the specified CONFIG-FILE. Provides a list of 
 variables not defined in the configuration file."
   (interactive "fConfig file: ")
-  (let* ( (wf-vars (oozie--workflow-vars) )
+  (let* ( (wf-vars (oozie--wf-vars-list) )
 	  (config-vars (oozie--properties-from-file config-file))
 	  (missing-vars (cl-set-difference wf-vars config-vars :test 'string=)))
     (if missing-vars
@@ -178,9 +178,33 @@ variables not defined in the configuration file."
 	  (dolist (var missing-vars)
 	    (oozie--msg (concat "---   * " var))))
       (oozie--msg "+++ All workflow variables are defined."))))
-    
+
+
+(defun oozie-wf-show-vars ()
+  "Shows a list of all workflow variables defined in the current buffer"
+  (interactive)
+  (oozie--msg-list "Workflow Vriables:" (oozie--wf-vars-list)))
+
+(defun oozie-hive-show-vars ()
+  "Shows a list of all the hive vars defined in the current buffer.
+   A hive var is any field delimited by '${hivevar:' and '}"
+  (interactive)
+  (oozie--msg-list "Hive Variables:" (oozie--hive-vars-list)))
+
 
 ;; helper functions
+
+(defun oozie--msg-list (header list)
+  (oozie--msg header)
+  (dolist (elem list)
+    (oozie--msg elem)))
+
+
+(defun oozie--wf-vars-list ()
+  "Returns a list of all vars defined in the current buffer"
+  (save-excursion
+    (goto-char (point-min))
+    (oozie-filter 'oozie-valid-wf-var (oozie--find-delimited-from-point "${" "}"))))
 
 (defun oozie--properties-from-file (config-file)
   "Returns a list of properties defined in CONFIG-FILE"
@@ -213,11 +237,6 @@ variables not defined in the configuration file."
     (erase-buffer)
     (pop-to-buffer cbuff)))
 
-(defun oozie-workflow-vars()
-  "Returns a list of all vars defined in the current buffer"
-  (save-excursion
-    (goto-char (point-min))
-    (oozie-filter 'oozie-valid-wf-var (oozie--find-delimited-from-point "${" "}"))))
 
 (defun oozie--validate-action-transitions ()
   "Checks if all action transitions are valid ones"
@@ -302,15 +321,17 @@ current buffer.
 	(setq end   (progn (search-forward delim2 nil 't) (backward-char) (point)))))
     vals))
 
+(defun oozie--hive-vars-list ()
+  "Returns a list of all hive vars defined in the current buffer"
+  (save-excursion
+    (goto-char (point-min))
+    (oozie--find-delimited-from-point "${hivevar:" "}")))
+
 (defun oozie-hive-vars (filename)
   "Gets all the hive vars in FILENAME"
-  (let ( (result '()) )
-    (with-temp-buffer
-      (insert-file-contents filename)
-      (goto-char (point-min))
-      (setq result (oozie--find-delimited-from-point "${hivevar:" "}"))
-      result)))
-
+  (with-temp-buffer
+    (insert-file-contents filename)
+    (oozie-hive-list-vars)))
 
 (defun oozie-valid-wf-var (var)
   (not (string-prefix-p "wf:" var)))

@@ -4,6 +4,36 @@
 (load-file "ooziefuncs.el")
 
 ;; tests
+(ert-deftest list-hive-vars-test ()
+  "Make sure that the hive vars are being properly extracted"
+  (with-temp-buffer
+    (insert "one ${hivevar:FOO} defined here.\n")
+    (insert "${hivevar:BAR} is defined here too!\n")
+    (insert "And a third hivevar: ${hivevar:THIS_ONE}\n")
+    (insert "And repeating ${hivevar:FOO} here.")
+    (let ( (hive-vars (oozie--hive-vars-list)))
+      (should (string-set= hive-vars '("FOO" "BAR" "THIS_ONE"))))))
+
+(ert-deftest list-wf-vars-test ()
+  "Makes sure that the workflow variables are being properly extracted"
+  (with-temp-buffer
+    (insert "
+<workflow-app name=\"promo_dataprep_${FOO}_${BAR}\" xmlns=\"uri:oozie:workflow:0.4\">
+
+    <global>
+        <job-tracker>${FOO}</job-tracker>
+        <name-node>${BAZ}</name-node>
+        <configuration>
+            <property>
+                <name>${FOO}</name>
+                <value>${BAR}</value>
+            </property>
+        </configuration>
+    </global>
+</workflow>${BAZ} // not proper wf definition, but the code does not care.   
+")
+    (let ( (wf-vars (oozie--wf-vars-list)) )
+      (should (string-set= wf-vars '("FOO" "BAR" "BAZ"))))))
 
 (ert-deftest valid-wf-var-test ()
   "Make sure we know what is a valid var name and what is a function"
@@ -21,7 +51,9 @@
 ;; helper functions
 (defun string-set= (l1 l2)
   "returns l1 (or l2) if sets are equal, 'nil otherwise"
-  (not (cl-set-difference l1 l2 :test 'string=)))
+  (and (= (length l1) (length l2))
+       (not (cl-set-difference l1 l2 :test 'string=))
+       (not (cl-set-difference l2 l1 :test 'string=))))
 
 (ert-run-tests-batch)
 
