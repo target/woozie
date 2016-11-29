@@ -6,9 +6,14 @@ This repository includes code for Oozie-related productivity while using Emacs. 
 but is not limited to:
 * functions for adding xml snippets into a workflow.xml file
 * functions for validating xml workflows
+* functions for extracting variable lists from different types of Hadoop/Ooozie files
 
 Note: This is work in progress and my first ever attempt at writing emacs lisp code, so be 
 kind and patient as we learn and the code evolves.
+
+# Running Unit Tests
+
+To run unit tests for this code: `emacs --script ooziefuncstest.el`
 
 # Installation
 

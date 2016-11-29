@@ -3,7 +3,7 @@
 ;; Copyright (c) 2016, Target Corp.
 ;;
 ;; Authors: alexandre.santoro@target.com
-;; Keywords: oozie workflow
+;; Keywords: oozie workflow / hive 
 ;; Version: 0.1.0-SNAPSHOT
 
 ;;; Commentary:
@@ -25,7 +25,7 @@
 
 ;; commands
 
-(defun oozie-mkwf (jobname)
+(defun oozie-wf-mk (jobname)
   "Adds a skeleton workflow definition to the current buffer"
   (interactive "sjob name: ")
   (insert
@@ -68,7 +68,7 @@
 "
    ))
 
-(defun oozie-action-hive (action-name hive-script)
+(defun oozie-wf-action-hive (action-name hive-script)
   "Inserts a oozie workflow hive action"
   (interactive "saction name: \nfhive script: ")
   (let ( (hivevars (oozie-hive-vars hive-script)))
@@ -88,14 +88,14 @@
 "
    )))
 
-(defun oozie-action-email (action-name)
+(defun oozie-wf-action-email (action-name email)
   "Insert an oozie workflow email action"
-  (interactive "saction name: ")
+  (interactive "saction name: \nstargetEmail: ")
   (insert
    "
     <action name=\"" action-name "\">
         <email xmlns=\"uri:oozie:email-action:0.1\">
-            <to></to>
+            <to>" email "</to>
             <subject></subject>
             <body>
             </body>
@@ -106,7 +106,7 @@
 "
    ))
 
-(defun oozie-action-shell (action-name cmd-str)
+(defun oozie-wf-action-shell (action-name cmd-str)
   "inserts an oozie workflow shell action"
   (interactive "saction name: \nscommand (with arguments): ")
   (let ( (script (car (split-string cmd-str)))
@@ -128,7 +128,7 @@
 "
     )))
 
-(defun oozie-property (name value)
+(defun oozie-wf-action-property (name value)
   "Inserts a property tag"
   (interactive "sproperty name: \nsproperty value: ")
   (insert
@@ -140,32 +140,17 @@
 "
 	    ))
 
-(defun oozie-argument (arg-value)
+(defun oozie-wf-action-argument (arg-value)
   "inserts an argument tag"
   (interactive "sarg value: ")
   (insert "            <argument>" arg-value "</argument>"))
 
-(defun oozie-file (filename)
+(defun oozie-wf-action-file (filename)
   "Inserts a file tag"
   (interactive "sfilename: ")-
   (insert "            <file>" filename "</file>"))
 
-(defun oozie-add-to-config ()
-  "Adds all the variables not already defined to the <oozie-vars> config buffer"
-  (interactive)
-  (let* ( (wf-vars (oozie-workflow-vars))
-	  (config-vars (oozie-config-vars))
-	  (new-vars (cl-set-difference wf-vars config-vars :test 'string=))
-	  (wf-buffer (current-buffer)))
-    (pop-to-buffer "oozie-vars")
-    (while new-vars
-      (insert (concat (car new-vars) "\n"))
-      (setq new-vars (cdr new-vars)))
-    (pop-to-buffer wf-buffer)
-    (message "%d vars extracted, %d new, %d already present." (length wf-vars) (length new-vars) (- (length wf-vars) (length new-vars)))))
-
-
-(defun oozie-validate-wf ()
+(defun oozie-wf-validate ()
   "
 Validates the current workflow, checking:
   * actions have unique names
@@ -178,13 +163,13 @@ Validates the current workflow, checking:
   (oozie--validate-action-transitions)
   )
 
-(defun oozie-validate-wf-config (config-file)
+(defun oozie-wf-validate-config (config-file)
   "
 Validates the workflow definiton in the current buffer
 agains the specified CONFIG-FILE. Provides a list of 
 variables not defined in the configuration file."
   (interactive "fConfig file: ")
-  (let* ( (wf-vars (oozie-workflow-vars) )
+  (let* ( (wf-vars (oozie--workflow-vars) )
 	  (config-vars (oozie--properties-from-file config-file))
 	  (missing-vars (cl-set-difference wf-vars config-vars :test 'string=)))
     (if missing-vars
@@ -207,6 +192,7 @@ variables not defined in the configuration file."
     props))
 
 (defun oozie--file-as-line-list (filename)
+  "Returns the contents of FILENAME as a list of strings where each string is one line in the file"
   (with-temp-buffer
     (insert-file-contents filename)
     (split-string (buffer-string) "\n" t)))
@@ -318,14 +304,13 @@ current buffer.
 
 (defun oozie-hive-vars (filename)
   "Gets all the hive vars in FILENAME"
-  (let ( (cbuff (current-buffer))
-	 (hbuff (find-file filename))
-	 (result '()))
-    (set-buffer hbuff)
-    (goto-char (point-min))
-    (setq result (oozie--find-delimited-from-point "${hivevar:" "}"))
-    (switch-to-buffer cbuff)
-    result))
+  (let ( (result '()) )
+    (with-temp-buffer
+      (insert-file-contents filename)
+      (goto-char (point-min))
+      (setq result (oozie--find-delimited-from-point "${hivevar:" "}"))
+      result)))
+
 
 (defun oozie-valid-wf-var (var)
   (not (string-prefix-p "wf:" var)))
