@@ -261,7 +261,7 @@ variables not defined in the configuration file."
 
 (defun oozie--validate-action-names ()
   (let* ( (action-names (oozie--wf-action-names) )
-	  (unique-action-names (remove-duplicates  action-names :test 'string=))
+	  (unique-action-names (cl-remove-duplicates  action-names :test 'string=))
 	  (repeated-names (cl-set-difference action-names unique-action-names :test 'string=)))
     
     (if (= (length action-names) (length unique-action-names))
