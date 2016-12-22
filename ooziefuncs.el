@@ -183,7 +183,7 @@ variables not defined in the configuration file."
 (defun oozie-wf-show-vars ()
   "Shows a list of all workflow variables defined in the current buffer"
   (interactive)
-  (oozie--msg-list "Workflow Vriables:" (oozie--wf-vars-list)))
+  (oozie--msg-list "Workflow Variables:" (oozie--wf-vars-list)))
 
 (defun oozie-hive-show-vars ()
   "Shows a list of all the hive vars defined in the current buffer.
@@ -331,7 +331,7 @@ current buffer.
   "Gets all the hive vars in FILENAME"
   (with-temp-buffer
     (insert-file-contents filename)
-    (oozie-hive-list-vars)))
+    (oozie--hive-vars-list)))
 
 (defun oozie-valid-wf-var (var)
   (not (string-prefix-p "wf:" var)))
