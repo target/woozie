@@ -99,7 +99,7 @@
             <subject></subject>
             <body>
             </body>
-        <email>
+        </email>
         <ok to=\"\"/>
         <error to=\"\"/>
     </action>
