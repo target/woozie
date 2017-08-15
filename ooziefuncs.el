@@ -283,12 +283,10 @@ variables not defined in the configuration file."
       
 (defun oozie--wf-flow-node-names ()
   "Returns the names of all flow nodes (action, decision, fork, etc.)"
-  
   (let* ( (dom (libxml-parse-xml-region (point-min) (point-max)))
 	  (nodes (dom-children dom))
 	  (flow-nodes (cl-remove-if-not 'oozie--wf-is-flow-node nodes)))
     (mapcar 'oozie--wf-node-name flow-nodes)))
-
 
 (defun oozie--wf-transition-names ()
   "Returns a list of transition targets"
@@ -299,22 +297,15 @@ variables not defined in the configuration file."
   "If node is a transition node (a node with a _to_ attribute), returns the listed destinations, otherwise nil"
   (let ( (node-name (dom-tag node)) )
     (cond
-     ( (equal node-name 'start)    (get-to-fields (list node)))
-     ( (equal node-name 'action)   (get-to-fields (append (dom-by-tag node 'ok) (dom-by-tag node 'error))))
-     ( (equal node-name 'decision) (get-to-fields (append (dom-by-tag node 'case) (dom-by-tag node 'default))))
+     ( (equal node-name 'start)    (oozie--wf-get-to-fields (list node)))
+     ( (equal node-name 'action)   (oozie--wf-get-to-fields (append (dom-by-tag node 'ok) (dom-by-tag node 'error))))
+     ( (equal node-name 'decision) (oozie--wf-get-to-fields (append (dom-by-tag node 'case) (dom-by-tag node 'default))))
      ( 'default                           '()))))
 
-(defun to-field (n)
-  (dom-attr n 'to))
-
-(defun get-to-fields (nodes)
+(defun oozie--wf-get-to-fields (nodes)
   "Return the _to_ fields of the nodes passed as parameters"
-  (mapcar 'to-field nodes))
+  (mapcar (lambda (n) (dom-attr n 'to)) nodes))
     
-;;  (save-excursion
-;;    (goto-char (point-min))
-;;    (oozie--find-delimited-from-point "to=\"" "\"")))
-
 (defun oozie-config-vars ()
   "Gets a list of all defined (i.e., in the oozie-vars buffer) variables"
   (let ( (cbuff (current-buffer))
@@ -377,10 +368,3 @@ current buffer.
 	(buffer-substring-no-properties (line-beginning-position) (line-end-position))
       '())))
 
-(defun oozie-filter (pred list)
-  "Filters the list recursively"
-  (let ( (rfl '()) )
-    (dolist (elem list)
-      (if (funcall pred elem)
-	  (setq rfl (cons elem rfl))))
-    (reverse rfl)))
