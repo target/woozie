@@ -22,6 +22,7 @@
 ;;; Code
 
 (require 'cl-lib)
+(require 'dom)
 
 ;; commands
 
@@ -204,7 +205,7 @@ variables not defined in the configuration file."
   "Returns a list of all vars defined in the current buffer"
   (save-excursion
     (goto-char (point-min))
-    (oozie-filter 'oozie-valid-wf-var (oozie--find-delimited-from-point "${" "}"))))
+    (cl-remove-if-not 'oozie-valid-wf-var (oozie--find-delimited-from-point "${" "}"))))
 
 (defun oozie--properties-from-file (config-file)
   "Returns a list of properties defined in CONFIG-FILE"
@@ -240,10 +241,7 @@ variables not defined in the configuration file."
 
 (defun oozie--validate-action-transitions ()
   "Checks if all action transitions are valid ones"
-  (let* ( (end-names  (oozie--find-all-delimited "end name=\"" "\""))
-	  (kill-names (oozie--find-all-delimited "kill name=\"" "\""))
-	  (action-names (oozie--wf-action-names))
-	  (destinations (append end-names kill-names action-names))
+  (let* ( (destinations (oozie--wf-flow-node-names))
 	  (transition-names (oozie--wf-transition-names))
 	  (bad-transitions (cl-set-difference transition-names destinations :test 'string=))
 	  (unused-actions  (cl-set-difference destinations transition-names :test 'string=)))
@@ -260,7 +258,7 @@ variables not defined in the configuration file."
 	    (oozie--msg (concat "~~~   " elem " action is not used.")))))))
 
 (defun oozie--validate-action-names ()
-  (let* ( (action-names (oozie--wf-action-names) )
+  (let* ( (action-names (oozie--wf-flow-node-names) )
 	  (unique-action-names (cl-remove-duplicates  action-names :test 'string=))
 	  (repeated-names (cl-set-difference action-names unique-action-names :test 'string=)))
     
@@ -271,18 +269,51 @@ variables not defined in the configuration file."
 	(oozie--msg "--- The following action names are repeated: ")
 	(dolist (elem repeated-names)
 	  (oozie--msg (concat "---    " elem)))))))
-    
-(defun oozie--wf-action-names ()
-  "Returns a list of action names"
-  (save-excursion
-    (goto-char (point-min))
-    (oozie--find-delimited-from-point "<action name=\"" "\"" 't)))
+
+(defun oozie--wf-is-flow-node (node)
+  (let ( (n (dom-tag node)) )
+    (or (equal n 'action)
+	(equal n 'decision)
+	(equal n 'join)
+	(equal n 'end)
+	(equal n 'kill))))
+
+(defun oozie--wf-node-name (node)
+  (dom-attr node 'name))
+      
+(defun oozie--wf-flow-node-names ()
+  "Returns the names of all flow nodes (action, decision, fork, etc.)"
+  
+  (let* ( (dom (libxml-parse-xml-region (point-min) (point-max)))
+	  (nodes (dom-children dom))
+	  (flow-nodes (cl-remove-if-not 'oozie--wf-is-flow-node nodes)))
+    (mapcar 'oozie--wf-node-name flow-nodes)))
+
 
 (defun oozie--wf-transition-names ()
   "Returns a list of transition targets"
-  (save-excursion
-    (goto-char (point-min))
-    (oozie--find-delimited-from-point "to=\"" "\"")))
+  (let* ( (dom (libxml-parse-xml-region (point-min) (point-max))) )
+    (apply 'append (mapcar 'oozie--wf-transition-node-dest (dom-children dom)))))
+
+(defun oozie--wf-transition-node-dest (node)
+  "If node is a transition node (a node with a _to_ attribute), returns the listed destinations, otherwise nil"
+  (let ( (node-name (dom-tag node)) )
+    (cond
+     ( (equal node-name 'start)    (get-to-fields (list node)))
+     ( (equal node-name 'action)   (get-to-fields (append (dom-by-tag node 'ok) (dom-by-tag node 'error))))
+     ( (equal node-name 'decision) (get-to-fields (append (dom-by-tag node 'case) (dom-by-tag node 'default))))
+     ( 'default                           '()))))
+
+(defun to-field (n)
+  (dom-attr n 'to))
+
+(defun get-to-fields (nodes)
+  "Return the _to_ fields of the nodes passed as parameters"
+  (mapcar 'to-field nodes))
+    
+;;  (save-excursion
+;;    (goto-char (point-min))
+;;    (oozie--find-delimited-from-point "to=\"" "\"")))
 
 (defun oozie-config-vars ()
   "Gets a list of all defined (i.e., in the oozie-vars buffer) variables"
@@ -306,6 +337,7 @@ current buffer.
   (save-excursion
     (goto-char (point-min))
     (oozie--find-delimited-from-point delim1 delim2 include-dupes)))
+
 
 (defun oozie--find-delimited-from-point (delim1 delim2 &optional include-dupes)
   "Returns a list with all **unique** values in the current buffer bounded by the two delimiters,
@@ -352,4 +384,3 @@ current buffer.
       (if (funcall pred elem)
 	  (setq rfl (cons elem rfl))))
     (reverse rfl)))
-
