@@ -299,6 +299,7 @@ variables not defined in the configuration file."
   (let ( (node-name (dom-tag node)) )
     (cond
      ( (equal node-name 'start)    (oozie--wf-get-attr 'to    (list node)))
+     ( (equal node-name 'join)     (oozie--wf-get-attr 'to    (list node)))
      ( (equal node-name 'action)   (oozie--wf-get-attr 'to    (append (dom-by-tag node 'ok) (dom-by-tag node 'error))))
      ( (equal node-name 'decision) (oozie--wf-get-attr 'to    (append (dom-by-tag node 'case) (dom-by-tag node 'default))))
      ( (equal node-name 'fork)     (oozie--wf-get-attr 'start (dom-by-tag node 'path)))
