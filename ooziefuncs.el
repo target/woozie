@@ -298,18 +298,13 @@ variables not defined in the configuration file."
   "If node is a transition node (a node with a _to_ attribute), returns the listed destinations, otherwise nil"
   (let ( (node-name (dom-tag node)) )
     (cond
-     ( (equal node-name 'start)    (oozie--wf-get-to-fields (list node)))
-     ( (equal node-name 'action)   (oozie--wf-get-to-fields (append (dom-by-tag node 'ok) (dom-by-tag node 'error))))
-     ( (equal node-name 'decision) (oozie--wf-get-to-fields (append (dom-by-tag node 'case) (dom-by-tag node 'default))))
-     ( (equal node-name 'fork)     (oozie--wf-extract-attr 'start (dom-by-tag node 'path)))
+     ( (equal node-name 'start)    (oozie--wf-get-attr 'to    (list node)))
+     ( (equal node-name 'action)   (oozie--wf-get-attr 'to    (append (dom-by-tag node 'ok) (dom-by-tag node 'error))))
+     ( (equal node-name 'decision) (oozie--wf-get-attr 'to    (append (dom-by-tag node 'case) (dom-by-tag node 'default))))
+     ( (equal node-name 'fork)     (oozie--wf-get-attr 'start (dom-by-tag node 'path)))
      ( 'default                           '()))))
 
-(defun oozie--wf-get-to-fields (nodes)
-  "Return the _to_ fields of the nodes passed as parameters"
-  (oozie--wf-extract-attr 'to nodes))
-;;  (mapcar (lambda (n) (dom-attr n 'to)) nodes))
-
-(defun oozie--wf-extract-attr (attrib nodes)
+(defun oozie--wf-get-attr (attrib nodes)
   "Give an list of nodes, returns a list with the value of _attrib_ for all thos nodes"
   (mapcar (lambda (n) (dom-attr n attrib)) nodes))
     
