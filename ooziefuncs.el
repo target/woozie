@@ -275,6 +275,7 @@ variables not defined in the configuration file."
     (or (equal n 'action)
 	(equal n 'decision)
 	(equal n 'join)
+	(equal n 'fork)
 	(equal n 'end)
 	(equal n 'kill))))
 
@@ -300,11 +301,17 @@ variables not defined in the configuration file."
      ( (equal node-name 'start)    (oozie--wf-get-to-fields (list node)))
      ( (equal node-name 'action)   (oozie--wf-get-to-fields (append (dom-by-tag node 'ok) (dom-by-tag node 'error))))
      ( (equal node-name 'decision) (oozie--wf-get-to-fields (append (dom-by-tag node 'case) (dom-by-tag node 'default))))
+     ( (equal node-name 'fork)     (oozie--wf-extract-attr 'start (dom-by-tag node 'path)))
      ( 'default                           '()))))
 
 (defun oozie--wf-get-to-fields (nodes)
   "Return the _to_ fields of the nodes passed as parameters"
-  (mapcar (lambda (n) (dom-attr n 'to)) nodes))
+  (oozie--wf-extract-attr 'to nodes))
+;;  (mapcar (lambda (n) (dom-attr n 'to)) nodes))
+
+(defun oozie--wf-extract-attr (attrib nodes)
+  "Give an list of nodes, returns a list with the value of _attrib_ for all thos nodes"
+  (mapcar (lambda (n) (dom-attr n attrib)) nodes))
     
 (defun oozie-config-vars ()
   "Gets a list of all defined (i.e., in the oozie-vars buffer) variables"

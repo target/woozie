@@ -27,6 +27,11 @@
 
     <start to="Config"/>
 
+    <fork name="Fork1">
+        <path start="Parallel1"/>
+        <path start="Parallel2"/>
+    </fork>
+
     <action name="Action1" retry-max="1" retry-interval="1">
         <shell xmlns="uri:oozie:shell-action:0.3">
             <exec>config.sh</exec>
