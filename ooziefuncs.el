@@ -157,12 +157,14 @@ Validates the current workflow, checking:
   * actions have unique names
   * transitions are valid"
   (interactive)
-  (oozie--msg-clr)
-  (oozie--msg "\n=======================================================")
-  (oozie--msg "Validating workflow.....")
-  (oozie--validate-action-names)
-  (oozie--validate-action-transitions)
-  )
+  (with-output-to-temp-buffer "*Oozie*"
+    (let ( (mvn-buffer (get-buffer "*Oozie*")))
+	(set-buffer mvn-buffer)
+	(oozie--msg "=======================================================")
+	(oozie--msg "Validating workflow.....")
+	(oozie--validate-action-names)
+	(oozie--validate-action-transitions)
+	)))
 
 (defun oozie-wf-validate-config (config-file)
   "
@@ -173,12 +175,16 @@ variables not defined in the configuration file."
   (let* ( (wf-vars (oozie--wf-vars-list) )
 	  (config-vars (oozie--properties-from-file config-file))
 	  (missing-vars (cl-set-difference wf-vars config-vars :test 'string=)))
-    (if missing-vars
-	(progn
-	  (oozie--msg "--- Missing variable definitions:")
-	  (dolist (var missing-vars)
-	    (oozie--msg (concat "---   * " var))))
-      (oozie--msg "+++ All workflow variables are defined."))))
+  (with-output-to-temp-buffer "*Oozie*"
+    (let ( (mvn-buffer (get-buffer "*Oozie*")))
+	(set-buffer mvn-buffer)
+    
+	(if missing-vars
+	    (progn
+	      (oozie--msg "--- Missing variable definitions:")
+	      (dolist (var missing-vars)
+		(oozie--msg (concat "---   * " var))))
+	  (oozie--msg "+++ All workflow variables are defined."))))))
 
 
 (defun oozie-wf-show-vars ()
@@ -222,22 +228,8 @@ variables not defined in the configuration file."
     (insert-file-contents filename)
     (split-string (buffer-string) "\n" t)))
   
-    
 (defun oozie--msg (msg)
-  "Prints MSG in the oozie message screen"
-  (let ( (cbuff (current-buffer)) )
-    (pop-to-buffer "oozie-messages")
-    (goto-char (point-max))
     (insert msg "\n")
-    (pop-to-buffer cbuff)))
-
-(defun oozie--msg-clr ()
-  "Clears the oozie message window buffer"
-  (let ( (cbuff (current-buffer)) )
-    (pop-to-buffer "oozie-messages")
-    (erase-buffer)
-    (pop-to-buffer cbuff)))
-
 
 (defun oozie--validate-action-transitions ()
   "Checks if all action transitions are valid ones"

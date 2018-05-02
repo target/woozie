@@ -51,12 +51,12 @@
 (ert-deftest node-names-test ()
   (with-temp-buffer
     (insert-file "./testdata/sampleworkflow.xml")
-    (should (equal (oozie--wf-flow-node-names) 	'("Fork1" "Join1" "Action1" "Decision1" "KillAction" "End")))))
+    (should (equal (oozie--wf-flow-node-names) 	'("Fork1" "Action1" "Decison1" "Action2" "Action3" "KillAction" "End")))))
 
 (ert-deftest transition-names-test ()
   (with-temp-buffer
     (insert-file "./testdata/sampleworkflow.xml")
-    (should (equal (oozie--wf-transition-names) '("Config" "Parallel1" "Parallel2" "Join2" "ActionOk" "ActionError" "DecisionCase" "DecisionDefault") ))))
+    (should (equal (oozie--wf-transition-names) '("Config" "Parallel1" "Parallel2" "DataprepSubflow" "ErrorEmail" "ModelerSubflow" "ModelStateUpdaterSubflow" "End" "ErrorEmail" "KillAction" "KillAction") ))))
 
 ;; helper functions
 (defun string-set= (l1 l2)

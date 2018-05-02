@@ -32,8 +32,6 @@
         <path start="Parallel2"/>
     </fork>
 
-    <join name="Join1" to="Join2" />
-    
     <action name="Action1" retry-max="1" retry-interval="1">
         <shell xmlns="uri:oozie:shell-action:0.3">
             <exec>config.sh</exec>
@@ -41,20 +39,52 @@
             <file>config.py</file>
             <capture-output/>
         </shell>
-        <ok to="ActionOk"/>
-        <error to="ActionError"/>
+        <ok to="DataprepSubflow"/>
+        <error to="ErrorEmail"/>
     </action>
 
-    <decision name="Decision1">
+    <decision name="Decison1">
         <switch>
             <!-- Run modeler workflow if first week of month-->
-            <case to="DecisionCase">
+            <case to="ModelerSubflow">
                 ${wf:actionData('Config')['FIRST_WEEK_OF_MONTH'] eq 'True' ||
                 PROMOMASTER_RUN_MODELER eq 'TRUE'}
             </case>
-            <default to="DecisionDefault"/>
+            <default to="ModelStateUpdaterSubflow"/>
         </switch>
     </decision>
+
+    <action name="Action2">
+        <sub-workflow>
+            <app-path>${appWorkflowPath}/modelStateUpdater</app-path>
+            <propagate-configuration/>
+            <configuration>
+                <property>
+                    <name>appWorkflowPath</name>
+                    <value>${appWorkflowPath}/modelStateUpdater</value>
+                </property>
+                <property>
+                    <name>JOB_NAME</name>
+                    <value>promo_modelStateUpdater_${DIV}_${ENV}</value>
+                </property>
+            </configuration>
+        </sub-workflow>
+        <ok to="End"/>
+        <error to="ErrorEmail"/>
+    </action>
+
+    <action name="Action3">
+        <email xmlns="uri:oozie:email-action:0.1">
+            <to>${SUPPORT_EMAIL}</to>
+            <subject>A problem has occurred with ${JOB_NAME}</subject>
+            <body>
+                Something went wrong while executing ${JOB_NAME}. Here's the link to the failing workflow:
+                ${hue_url}/${wf:id()}/
+            </body>
+        </email>
+        <ok to="KillAction"/>
+        <error to="KillAction"/>
+    </action>
 
     <kill name="KillAction">
         <message>Workflow failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
