@@ -55,6 +55,7 @@
 
 (ert-deftest transition-names-test ()
   (with-temp-buffer
+    
     (insert-file "./testdata/sampleworkflow.xml")
     (should (equal (oozie--wf-transition-names) '("Config" "Parallel1" "Parallel2" "DataprepSubflow" "ErrorEmail" "ModelerSubflow" "ModelStateUpdaterSubflow" "End" "ErrorEmail" "KillAction" "KillAction") ))))
 

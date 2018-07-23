@@ -158,13 +158,10 @@ Validates the current workflow, checking:
   * transitions are valid"
   (interactive)
   (with-output-to-temp-buffer "*Oozie*"
-    (let ( (mvn-buffer (get-buffer "*Oozie*")))
-	(set-buffer mvn-buffer)
-	(oozie--msg "=======================================================")
-	(oozie--msg "Validating workflow.....")
-	(oozie--validate-action-names)
-	(oozie--validate-action-transitions)
-	)))
+    (oozie--msg "=======================================================")
+    (oozie--msg "Validating workflow.....")
+    (oozie--validate-action-names)
+    (oozie--validate-action-transitions)))
 
 (defun oozie-wf-validate-config (config-file)
   "
@@ -175,17 +172,13 @@ variables not defined in the configuration file."
   (let* ( (wf-vars (oozie--wf-vars-list) )
 	  (config-vars (oozie--properties-from-file config-file))
 	  (missing-vars (cl-set-difference wf-vars config-vars :test 'string=)))
-  (with-output-to-temp-buffer "*Oozie*"
-    (let ( (mvn-buffer (get-buffer "*Oozie*")))
-	(set-buffer mvn-buffer)
-    
-	(if missing-vars
-	    (progn
-	      (oozie--msg "--- Missing variable definitions:")
-	      (dolist (var missing-vars)
-		(oozie--msg (concat "---   * " var))))
-	  (oozie--msg "+++ All workflow variables are defined."))))))
-
+    (with-output-to-temp-buffer "*Oozie*"
+      (if missing-vars
+	  (progn
+	    (oozie--msg "--- Missing variable definitions:")
+	    (dolist (var missing-vars)
+	      (oozie--msg (concat "---   * " var))))
+	(oozie--msg "+++ All workflow variables are defined.")))))
 
 (defun oozie-wf-show-vars ()
   "Shows a list of all workflow variables defined in the current buffer"
@@ -229,7 +222,8 @@ variables not defined in the configuration file."
     (split-string (buffer-string) "\n" t)))
   
 (defun oozie--msg (msg)
-    (insert msg "\n")
+  (prin1 msg)
+  (prin1 "\n"))
 
 (defun oozie--validate-action-transitions ()
   "Checks if all action transitions are valid ones"
