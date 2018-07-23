@@ -76,9 +76,7 @@
     (insert
      "
     <action name=\"" action-name "\" cred=\"hcat_creds\">
-        <hive xmlns=\"uri:oozie:hive-action:0.2\">
-            <job-tracker>${jobTracker}</job-tracker>
-            <name-node>${nameNode}</name-node>
+        <hive xmlns=\"uri:oozie:hive-action:0.5\">
             <script>" (file-name-nondirectory hive-script) "</script>\n")
     (dolist (hivevar hivevars)
       (insert "            <param>" hivevar "=${" hivevar "}</param>\n"))
@@ -114,9 +112,7 @@
 	 (args   (cdr (split-string cmd-str))))
     (insert "
     <action name=\"" action-name "\" cred=\"hcat_creds\">
-        <shell xmlns=\"uri:oozie:shell-action:0.1\">
-            <job-tracker>${jobTracker}</job-tracker>
-            <name-node>${nameNode}</name-node>
+        <shell xmlns=\"uri:oozie:shell-action:0.3\">
             <exec>" script "</exec>
 ")
     (dolist (argument args)
