@@ -194,8 +194,6 @@ variables not defined in the configuration file."
 	 (graph (oozie--graph-build dom))
 	 (buf (generate-new-buffer "wfgraph")))
     (switch-to-buffer buf)
-    (insert (symbol-name (dom-tag dom)) ":")
-    (insert (dom-attr dom 'name))
     (dolist (node graph)
       (insert "+" (car node) ":" (car (cdr node)) "\n"))
     ;;  (insert (dom-attr node 'name') " -- " (symbol-name (dom-tag node))))
@@ -206,12 +204,19 @@ variables not defined in the configuration file."
 
 (defun oozie--graph-build (dom)
   "Give the xml representation of the workflow, build the corresponding execution graph"
-  (let* ((flow-nodes (cl-remove-if-not 'oozie--wf-is-flow-node (dom-children dom))))
+  (let* ((flow-nodes (cl-remove-if-not 'oozie--wf-is-graph-node (dom-children dom))))
     (mapcar 'oozie--wf-from-to flow-nodes)))
 
 (defun oozie--wf-from-to (flow-node)
   "Return the current node name, it's type and the to node for the action"
-  (list (dom-attr flow-node 'name) (symbol-name (dom-tag flow-node))))
+  (let ( (node-type (dom-tag flow-node)))
+    (cond ( (equal node-type 'start)
+	    (list "start" "start"))
+	  ( (equal node-type 'end)
+	    (list (dom-attr flow-node 'name) "end"))
+	  ( t
+	    (list (dom-attr flow-node 'name) (symbol-name (dom-tag flow-node)))))))
+	    
 	 
   
 (defun oozie--msg-list (header list)
@@ -284,6 +289,12 @@ variables not defined in the configuration file."
 	(equal n 'fork)
 	(equal n 'end)
 	(equal n 'kill))))
+
+(defun oozie--wf-is-graph-node (node)
+  (let ( (n (dom-tag node)) )
+    (or (equal n 'action)
+	(equal n 'start)
+	(equal n 'end))))
 
 (defun oozie--wf-node-name (node)
   (dom-attr node 'name))
