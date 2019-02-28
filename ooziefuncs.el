@@ -201,12 +201,12 @@ variables not defined in the configuration file."
 
 (defun oozie--graph-print (path)
   "Prints the path as specified."
-  (let* ( (width (apply 'max (mapcar 'length path)))
+  (let* ( (width (+ 8 (apply 'max (mapcar 'length path))))
 	  (first-step (car path))
 	  (other-path (cdr path)))
-    (insert (oozie--graph-box first-step (+ width 8)))
+    (insert (oozie--graph-box first-step width))
     (dolist (element other-path)
-      (insert (concat (oozie--str-pad "|" (+ width 8)) "\n" (oozie--graph-box element (+ width 8)))))))
+      (insert (concat (oozie--str-pad "|" width) "\n" (oozie--graph-box element width))))))
 
 (defun oozie--str-pad (str size)
   (let* ( (slack (- size (length str)))

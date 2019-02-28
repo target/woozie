@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow-app name="promo_dmscp_All_${ENV}" xmlns="uri:oozie:workflow:0.4">
+
+    <global>
+        <job-tracker>${jobTracker}</job-tracker>
+        <name-node>${nameNode}</name-node>
+        <configuration>
+            <property>
+                <name>mapreduce.job.queuename</name>
+                <value>${queueName}</value>
+            </property>
+        </configuration>
+    </global>
+
+    <credentials>
+        <credential name='hcat_creds' type='hcat'>
+            <property>
+                <name>hcat.metastore.uri</name>
+                <value>${metastore_uri}</value>
+            </property>
+            <property>
+                <name>hcat.metastore.principal</name>
+                <value>${metastore_principal}</value>
+            </property>
+         </credential>
+    </credentials>
+
+    <start to="Step1"/>
+
+    <action name="Step1">
+        <sub-workflow>
+            <app-path>${appWorkflowPath}/dataprep</app-path>
+            <propagate-configuration/>
+            <configuration>
+                <property>
+                    <name>GRID_RETRY</name>
+                    <value>TRUE</value>
+                </property>
+            </configuration>
+        </sub-workflow>
+        <ok to="TheSecondStep"/>
+        <error to="NotifyFailed"/>
+    </action>
+
+    <action name="TheSecondStep">
+        <shell xmlns="uri:oozie:shell-action:0.3">
+            <exec>runpython.sh</exec>
+            <argument>successfulDivisions.py</argument>
+            <argument>-e</argument>
+            <argument>${ENV}</argument>
+            <argument>-d</argument>
+            <argument>${DIV}</argument>
+            <argument>-w</argument>
+            <argument>dataprep</argument>
+            <argument>-o</argument>
+            <argument>${oozie_url}</argument>
+            <argument>-t</argument>
+            <argument>${DMSCP_START_TIME}</argument>
+            <file>common/wfutils/runpython.sh</file>
+            <file>common/commonutils.py</file>
+            <file>successfulDivisions.py</file>
+            <file>${KEYTAB}#${wf:user()}.keytab</file>
+            <capture-output/>
+        </shell>
+        <ok to="StepC"/>
+        <error to="NotifyFailed"/>
+    </action>
+
+    <action name="StepC">
+        <sub-workflow>
+            <app-path>${appWorkflowPath}/modeler</app-path>
+            <propagate-configuration/>
+            <configuration>
+                <property>
+                    <name>GRID_RETRY</name>
+                    <value>TRUE</value>
+                </property>
+                <property>
+                    <name>DIV</name>
+                    <value>${wf:actionData('GetSuccessfulDataprepDivs')['DATAPREP_SUCCESS_DIVS']}</value>
+                </property>
+            </configuration>
+        </sub-workflow>
+        <ok to="AllGoodThingsComeToAnEnd"/>
+        <error to="NotifyFailed"/>
+    </action>
+
+  
+    <action name="NotifyFailed">
+        <sub-workflow>
+            <app-path>${DSE_NOTIFIER_WF}</app-path>
+            <propagate-configuration/>
+            <configuration>
+                <property>
+                    <name>STATE</name>
+                    <value>Failed</value>
+                </property>
+                <property>
+                    <name>WORKFLOW_ID</name>
+                    <value>${wf:id()}</value>
+                </property>
+                <property>
+                    <name>JOB_NAME</name>
+                    <value>promo_dmscp</value>
+                </property>
+            </configuration>
+        </sub-workflow>
+        <ok to="ErrorEmail"/>
+        <error to="ErrorEmail"/>
+    </action>
+
+    <action name="ErrorEmail">
+        <email xmlns="uri:oozie:email-action:0.1">
+            <to>${SUPPORT_EMAIL}</to>
+            <subject>A problem has occurred with promo_dmscp_All_${ENV}</subject>
+            <body>
+                Something went wrong while executing promo_dmscp_All_${ENV}. Here's the link to the failing workflow:
+                ${hue_url}/${wf:id()}/
+            </body>
+        </email>
+        <ok to="KillAction"/>
+        <error to="KillAction"/>
+    </action>
+
+    <kill name="KillAction">
+        <message>Workflow failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+
+    <end name="AllGoodThingsComeToAnEnd"/>
+
+</workflow-app>
