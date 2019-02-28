@@ -187,9 +187,33 @@ variables not defined in the configuration file."
   (interactive)
   (oozie--msg-list "Hive Variables:" (oozie--hive-vars-list)))
 
+(defun oozie-wf-visualize ()
+  "Shows an (ASCII) graph representation of a workflow"
+  (interactive)
+  (let* ((dom (libxml-parse-xml-region (point-min) (point-max)))
+	 (graph (oozie--graph-build dom))
+	 (buf (generate-new-buffer "wfgraph")))
+    (switch-to-buffer buf)
+    (insert (symbol-name (dom-tag dom)) ":")
+    (insert (dom-attr dom 'name))
+    (dolist (node graph)
+      (insert "+" (car node) ":" (car (cdr node)) "\n"))
+    ;;  (insert (dom-attr node 'name') " -- " (symbol-name (dom-tag node))))
+    (insert "\n------\n")))
+    ;;(Insert graph)))
 
 ;; helper functions
 
+(defun oozie--graph-build (dom)
+  "Give the xml representation of the workflow, build the corresponding execution graph"
+  (let* ((flow-nodes (cl-remove-if-not 'oozie--wf-is-flow-node (dom-children dom))))
+    (mapcar 'oozie--wf-from-to flow-nodes)))
+
+(defun oozie--wf-from-to (flow-node)
+  "Return the current node name, it's type and the to node for the action"
+  (list (dom-attr flow-node 'name) (symbol-name (dom-tag flow-node))))
+	 
+  
 (defun oozie--msg-list (header list)
   (oozie--msg header)
   (dolist (elem list)
@@ -350,6 +374,7 @@ current buffer.
 	 (end   (line-end-position))
 	 )
     (if (< start end)
-	(buffer-substring-no-properties (line-beginning-position) (line-end-position))
+	(buffer-substring-no-properties start end)
       '())))
-
+  
+  
