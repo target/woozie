@@ -1,0 +1,15 @@
+#+ title: Oozie Emacs Lib User Manual
+
+* Overview
+
+
+* Environment Setup
+
+* Use Cases
+
+** Workflow Creation
+
+** Workflow Validation
+
+** Workflow Visualization
+
