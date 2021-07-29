@@ -187,8 +187,70 @@ variables not defined in the configuration file."
   (interactive)
   (oozie--msg-list "Hive Variables:" (oozie--hive-vars-list)))
 
+(defun oozie-wf-visualize ()
+  "Shows an (ASCII) graph representation of a workflow"
+  (interactive)
+  (let* ((dom (libxml-parse-xml-region (point-min) (point-max)))
+	 (graph (oozie--graph-build dom))
+	 (happy-path (oozie--graph-path-from "start" graph))
+	 (buf (generate-new-buffer "wfgraph")))
+    (switch-to-buffer buf)
+    (oozie--graph-print happy-path)))
 
 ;; helper functions
+
+(defun oozie--graph-print (path)
+  "Prints the path as specified."
+  (let* ( (width (+ 8 (apply 'max (mapcar 'length path))))
+	  (first-step (car path))
+	  (other-path (cdr path)))
+    (insert (oozie--graph-box first-step width))
+    (dolist (element other-path)
+      (insert (concat (oozie--str-pad "|" width) "\n" (oozie--graph-box element width))))))
+
+(defun oozie--str-pad (str size)
+  (let* ( (slack (- size (length str)))
+	  (pad (make-string (/ slack 2) ?\s))
+	  (val (concat pad str pad)))
+    (if (equal size (length val))
+	val
+      (concat " " val))))
+
+(defun oozie--graph-box (val width)
+  (let* ( (top (concat "+-" (make-string (length val) ?-)  "-+"))
+	  (middle (concat "| " val " |"))
+	  (bottom top))
+    (concat (oozie--str-pad top width) "\n" (oozie--str-pad middle width) "\n" (oozie--str-pad bottom width) "\n")))
+
+(defun oozie--graph-build (dom)
+  "Give the xml representation of the workflow, build the corresponding execution graph"
+  (let* ((flow-nodes (cl-remove-if-not 'oozie--wf-is-graph-node (dom-children dom))))
+    (mapcar 'oozie--wf-from-to flow-nodes)))
+
+(defun oozie--graph-path-from (first-node-name graph)
+  (if (not first-node-name)
+      '()
+    (cons first-node-name (oozie--graph-path-from (oozie--graph-to first-node-name graph) graph))))
+
+(defun oozie--graph-to (node-name graph)
+  (let* ( (current-node (car graph)))
+    (cond ( (not graph) graph)
+	  ( (equal node-name (car current-node)) (car (cdr (cdr current-node))))
+	  ( t (oozie--graph-to node-name (cdr graph))))))
+
+(defun oozie--wf-from-to (flow-node)
+  "Return the current node name, it's type and the to node for the action"
+  (let ( (node-type (dom-tag flow-node)))
+    (cond ( (equal node-type 'start)
+	    (list "start" "start" (dom-attr flow-node 'to)))
+	  ( (equal node-type 'end)
+	    (list (dom-attr flow-node 'name) "end" nil))
+	  ( t
+	    (list (dom-attr flow-node 'name)
+		  (symbol-name (dom-tag flow-node))
+		  (dom-attr (dom-by-tag flow-node 'ok) 'to))))))
+
+
 
 (defun oozie--msg-list (header list)
   (oozie--msg header)
@@ -196,6 +258,7 @@ variables not defined in the configuration file."
     (oozie--msg elem)))
 
 
+  
 (defun oozie--wf-vars-list ()
   "Returns a list of all vars defined in the current buffer"
   (save-excursion
@@ -260,6 +323,12 @@ variables not defined in the configuration file."
 	(equal n 'fork)
 	(equal n 'end)
 	(equal n 'kill))))
+
+(defun oozie--wf-is-graph-node (node)
+  (let ( (n (dom-tag node)) )
+    (or (equal n 'action)
+	(equal n 'start)
+	(equal n 'end))))
 
 (defun oozie--wf-node-name (node)
   (dom-attr node 'name))
@@ -350,6 +419,8 @@ current buffer.
 	 (end   (line-end-position))
 	 )
     (if (< start end)
-	(buffer-substring-no-properties (line-beginning-position) (line-end-position))
+	(buffer-substring-no-properties start end)
       '())))
-
+  
+  
+    

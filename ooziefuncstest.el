@@ -59,6 +59,37 @@
     (insert-file "./testdata/sampleworkflow.xml")
     (should (equal (oozie--wf-transition-names) '("Config" "Parallel1" "Parallel2" "DataprepSubflow" "ErrorEmail" "ModelerSubflow" "ModelStateUpdaterSubflow" "End" "ErrorEmail" "KillAction" "KillAction") ))))
 
+
+;;; tests for visualization function
+
+(ert-deftest str-pad-test ()
+  "Tests that string padding works as expected."
+  (should (equal " abc " (oozie--str-pad "abc" 5)))
+  (should (equal "abc"   (oozie--str-pad "abc" 3)))
+  (should (equal "  ab  " (oozie--str-pad "ab" 6)))
+  (should (equal "  abc " (oozie--str-pad "abc" 6))))
+
+(ert-deftest graph-box-test ()
+  "Tests that oozie--graph-box creates box around text"
+  (let ( (box (concat " +-----+\n" " | box |\n" " +-----+\n")))
+    (should (equal box (oozie--graph-box "box" 8)))))
+
+
+(ert-deftest graph-end-to-end-test ()
+  "Tests the visualize function end-to-end"
+  (let ( (expected
+	  (with-temp-buffer
+	    (insert-file "testdata/wfgraph.result")
+	    (buffer-string)))
+	 (output
+	  (with-temp-buffer
+	    (insert-file "testdata/simplegraphworkflow.xml")
+	    (oozie-wf-visualize)
+	    (buffer-string)))
+	 )
+    (should (equal expected output))))
+
+
 ;; helper functions
 (defun string-set= (l1 l2)
   "returns l1 (or l2) if sets are equal, 'nil otherwise"
@@ -67,4 +98,5 @@
        (not (cl-set-difference l2 l1 :test 'string=))))
 
 (ert-run-tests-batch)
+
 

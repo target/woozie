@@ -7,6 +7,7 @@ but is not limited to:
 * functions for adding xml snippets into a workflow.xml file
 * functions for validating xml workflows
 * functions for extracting variable lists from different types of Hadoop/Ooozie files
+* function for visualizing workflows
 
 Note: This is work in progress and my first ever attempt at writing emacs lisp code, so be 
 kind and patient as we learn and the code evolves.
@@ -17,13 +18,17 @@ To run unit tests for this code: `emacs --script ooziefuncstest.el`
 
 # Installation
 
-Add the following to your .emacs file:
+Add the following to your emacs config file:
 ```lisp
 (load-file "path/to/ooziefuncs.el")
 ```
 
 All functions start with `oozie-`, so feel free to use `ctrl-h f oozie-<TAB>` to explore
 the available functionality.
+
+# User Documentation
+
+Can be found [here](./docs/README.org)
 
 
 
