@@ -1,0 +1,36 @@
+* OozieEmacsLib
+
+Oozie functionality in the emacs environment!
+
+This repository includes code for Oozie-related productivity while using Emacs. This includes,
+but is not limited to:
++ functions for adding xml snippets into a workflow.xml file
++ functions for validating xml workflows
++ functions for extracting variable lists from different types of Hadoop/Ooozie files
++ function for visualizing workflows
+
+** Running Unit Tests
+
+To run unit tests for this code: =emacs --script ooziefuncstest.el=
+
+** Installation
+
+Installation is straightforward. Just copy the file ooziefuncs.el to your machine and add the following to your emacs configuration:
+
+#+BEGIN_SRC emacs-lisp
+(load-file "path/to/ooziefuncs.el")
+#+END_SRC
+
+All functions start with `oozie-`, so feel free to use `ctrl-h f oozie-<TAB>` to explore
+the available functionality.
+
+** User Documentation
+
+Including installation instructions and examples, can be found [[./docs/README.org][here]].
+
+
+
+
+
+
+

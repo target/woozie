@@ -1,15 +1,101 @@
-#+ title: Oozie Emacs Lib User Manual
+#+title: Oozie Emacs Lib User Manual
 
 * Overview
 
+Oozie Emacs Lib is a collection of emacs functions that aid in the creation and maintenance of Oozie workflows.
+This library makes it easier to create workflow definitions and corresponding configuration files.
+It can also be used to validate workflows.
 
 * Environment Setup
 
+
+Setting up Emacs to use this library is trivial.  All you have to do is download  =ooziefuncs.el= to your machine.
+Then copy it to where you want it reside and add the following to your emacs configuration file (usually =.emacs= or =.emacs.d/init.el=):
+
+#+BEGIN_SRC emacs-lisp
+(load-file "path/to/ooziefuncs.el")
+#+END_SRC
+
+And that is all there is to it. 
+Several functions starting with =oozie-= are now available to aid you in defining Oozie workflows.
+
 * Use Cases
+
+So, what can the Oozie Emacs Lib help you with? Many things, it turns out.
 
 ** Workflow Creation
 
+Suppose you want to create a workflow definition.
+Open a buffer where you want to create the workflow file and type =M-x oozie-wf-mk=. 
+Emacs will ask you for the job name to use and create a workfllow XML skeleton.
+
+Once you have your workflow skeleton,  the library makes it easy to insert actions.
+All you have to do is select the appropriate =oozie-wf-action-*= function.
+Calling these functions and providing a couple of parameters should be enough to generate the desired workflow elements.
+
+The following functions are available for creating new actions:
++ =oozie-wf-action-shell= creates a new shell action.
++ =oozie-wf-action-hive= creates a new hive action
++ =oozie-wf-action-email= creates a new email action
+
+Of particular interest is the =oozie-wf-action-hive= function. Not only does it create a new action, it also scans
+the corresponding hive script looking for variables (marked by =hivevar:=) and adds them to the xml action definition.
+
+There are also functions that help populate these actions with file, property and argument elements.
+They are:
++ =oozie-wf-action-property=
++ =oozie-wf-action-argument=
++ =oozie-wf-action-file=
+
+
 ** Workflow Validation
 
+Workflow creation is not the only area in which Oozie Emacs Lib adds value.
+It can also help by checking and validating the workflow you have created.
+
+You can type  =M-x oozie-wf-validate= and it will check whether:
++ Action names are unique
++ All transitions are valid
+
+You can also check if the workflow with respect to its configuration file.
+Type =M-x oozie-wf-validate-config=, passing the configuration file as a parameter and Emacs will list all 
+the variables in the workflow definition that are missing from the configuration file.
+
+
 ** Workflow Visualization
+
+Workflow visualization is currently in its early stages, but it can be used.
+=M-x oozie-wf-visualize= displays an ASCII art representation of the workflow, like the example below:
+
+#+BEGIN_SRC
+            +-------+           
+            | start |           
+            +-------+           
+                |               
+            +-------+           
+            | Step1 |           
+            +-------+           
+                |               
+        +---------------+       
+        | TheSecondStep |       
+        +---------------+       
+                |               
+            +-------+           
+            | StepC |           
+            +-------+           
+                |               
+  +--------------------------+  
+  | AllGoodThingsComeToAnEnd |  
+  +--------------------------+  
+
+#+END_SRC
+
+Unfortunately, /it is currently limited to workflows without conditionals or forks/.
+
+* What Is Coming Next?
+
+Oozie Emacs Lib still has a lot of room to grow. New features currently planned include:
++ User-defined templates for the different xml elements
++ Exporting visualization as =*.dot= files
++ Improving ASCII visualization capabilities to include if-conditionals and forks.
 
