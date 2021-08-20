@@ -26,7 +26,7 @@ the available functionality.
 
 ** User Documentation
 
-Including installation instructions and examples, can be found [[./docs/README.org][here]].
+Including installation instructions and examples, can be found [[./docs/index.org][here]].
 
 
 
