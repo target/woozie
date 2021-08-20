@@ -47,6 +47,11 @@ They are:
 + =oozie-wf-action-argument=
 + =oozie-wf-action-file=
 
+*** Configuration Parameter Discovery
+
+To help with creating your configuration files, you can type =oozie-wf-show-vars= when inside the workflow xml buffer
+and  you will get a new buffer with all the variables defined in the workflow.
+If you are inside a hive buffer, =oozie-hive-show-vars= will list all the hive variables.
 
 ** Workflow Validation
 
