@@ -11,7 +11,7 @@ but is not limited to:
 
 ** Running Unit Tests
 
-To run unit tests for this code: =emacs --script ooziefuncstest.el=
+To run unit tests for this code: =make=
 
 ** Installation
 

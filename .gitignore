@@ -1,3 +1,6 @@
+# make artifacts
+.*.flag
+
 # Compiled
 *.elc
 
