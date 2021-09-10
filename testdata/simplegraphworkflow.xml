@@ -81,7 +81,7 @@
                 </property>
             </configuration>
         </sub-workflow>
-        <ok to="AllGoodThingsComeToAnEnd"/>
+        <ok to="TheEnd"/>
         <error to="NotifyFailed"/>
     </action>
 
@@ -126,6 +126,6 @@
         <message>Workflow failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
     </kill>
 
-    <end name="AllGoodThingsComeToAnEnd"/>
+    <end name="TheEnd"/>
 
 </workflow-app>

@@ -187,7 +187,7 @@ variables not defined in the configuration file."
   (interactive)
   (oozie--msg-list "Hive Variables:" (oozie--hive-vars-list)))
 
-(defun oozie-wf-visualize ()
+(defun oozie-wf-mk-ascii ()
   "Shows an (ASCII) graph representation of a workflow"
   (interactive)
   (let* ((dom (libxml-parse-xml-region (point-min) (point-max)))
@@ -197,7 +197,68 @@ variables not defined in the configuration file."
     (switch-to-buffer buf)
     (oozie--graph-print happy-path)))
 
+(defun oozie-wf-mk-dot ()
+  "Creates a buffer with a dot format representation of the workflow in the current buffer."
+  (interactive)
+  (let* ( (dom (libxml-parse-xml-region (point-min) (point-max)))
+	  (end (dom-attr (car (dom-by-tag dom 'end)) 'name))
+	 )
+    
+    (switch-to-buffer (generate-new-buffer "workflow.dot"))
+    (insert "strict digraph {\n")
+    (insert "\n  // nodes with diff. shape requirements\n")
+    (insert "  start [shape=doublecircle]\n")
+    (insert (concat "  " end " [shape=doublecircle]\n"))
+    (insert "\n  // transitions\n")
+    (dolist (edge (oozie--wf-transitions-hp (oozie--wf-transitions dom)))
+      (insert (concat "  " (car edge) " -> " (cdr edge) "\n")))
+    (insert "}\n")))
+  
+
+;;------------------------------------------------------------------------------------------------
 ;; helper functions
+;;------------------------------------------------------------------------------------------------
+
+;; notes:
+;;  + transitions are represented as a cons-pair: ( FROM . TO)
+
+(defun oozie--wf-transitions (dom)
+  "Returns a list of all the transitions in the workflow, where each transitions is represented as (from . to)"
+  (let* ((nodes (dom-children dom)) )
+      (mapcan 'oozie--wf-node-transitions nodes)))
+
+(defun oozie--wf-transitions-hp (transitions)
+  "Returns only the happy path transitions for the list.
+
+   Happy path is defined as all traversals reachable from node named 'start'."
+  (let* ( (froms (mapcar 'car transitions))
+	  (tos   (cons "start" (mapcar 'cdr transitions)))
+	  (no-in-edge (cl-set-difference froms tos :test #'equal)) )
+    (if no-in-edge
+	(oozie--wf-transitions-hp (cl-remove-if (lambda (x) (equal (car no-in-edge) (car x))) transitions))
+      transitions)))
+    
+(defun oozie--wf-node-transitions (node)
+  "Returns a list containing the transitions for this node, if it is a flow node, return an empty list otherwise."
+  (let ( (node-type (dom-tag node)))
+    (cond ((equal 'start node-type) (list (cons "start" (dom-attr node 'to))))
+	  ((equal 'action node-type) (list (cons (dom-attr node 'name) (dom-attr (car (dom-by-tag node 'ok)) 'to))))
+	  ((equal 'fork node-type) (oozie--wf-fork-transitions node))
+	  ((equal 'join node-type) (list (cons (dom-attr node 'name) (dom-attr node 'to))))
+	  ((equal 'decision node-type) (oozie--wf-decision-transitions node))
+	  (t '()))))
+
+(defun oozie--wf-fork-transitions (fork-node)
+  "Extracts transitions for a fork node"
+  (let ((from (dom-attr fork-node 'name)))
+    (mapcar (lambda (path) (cons from (dom-attr path 'start))) (dom-by-tag fork-node 'path))))
+
+(defun oozie--wf-decision-transitions (decision-node)
+  "Extracts transitions for a decision node"
+  (let* ((from (dom-attr decision-node 'name))
+	 (switch-node (car (dom-by-tag decision-node 'switch)))
+	 )
+    (mapcar (lambda (case) (cons from (dom-attr case 'to))) (append (dom-by-tag switch-node 'case) (dom-by-tag switch-node 'default)))))
 
 (defun oozie--graph-print (path)
   "Prints the path as specified."
@@ -209,6 +270,7 @@ variables not defined in the configuration file."
       (insert (concat (oozie--str-pad "|" width) "\n" (oozie--graph-box element width))))))
 
 (defun oozie--str-pad (str size)
+  "Pads strings with blanks on both sides to be of the specified size"
   (let* ( (slack (- size (length str)))
 	  (pad (make-string (/ slack 2) ?\s))
 	  (val (concat pad str pad)))
@@ -239,7 +301,7 @@ variables not defined in the configuration file."
 	  ( t (oozie--graph-to node-name (cdr graph))))))
 
 (defun oozie--wf-from-to (flow-node)
-  "Return the current node name, it's type and the to node for the action"
+  "Return the current node name, its type and the to node for the action"
   (let ( (node-type (dom-tag flow-node)))
     (cond ( (equal node-type 'start)
 	    (list "start" "start" (dom-attr flow-node 'to)))
@@ -250,14 +312,10 @@ variables not defined in the configuration file."
 		  (symbol-name (dom-tag flow-node))
 		  (dom-attr (dom-by-tag flow-node 'ok) 'to))))))
 
-
-
 (defun oozie--msg-list (header list)
   (oozie--msg header)
   (dolist (elem list)
     (oozie--msg elem)))
-
-
   
 (defun oozie--wf-vars-list ()
   "Returns a list of all vars defined in the current buffer"
@@ -316,6 +374,7 @@ variables not defined in the configuration file."
 	  (oozie--msg (concat "---    " elem)))))))
 
 (defun oozie--wf-is-flow-node (node)
+  "Returns true if the node is a node used in defining flow"
   (let ( (n (dom-tag node)) )
     (or (equal n 'action)
 	(equal n 'decision)
@@ -334,7 +393,7 @@ variables not defined in the configuration file."
   (dom-attr node 'name))
       
 (defun oozie--wf-flow-node-names ()
-  "Returns the names of all flow nodes (action, decision, fork, etc.)"
+  "Returns the names of all flow nodes (action, decision, fork, etc.) in the current buffer xml"
   (let* ( (dom (libxml-parse-xml-region (point-min) (point-max)))
 	  (nodes (dom-children dom))
 	  (flow-nodes (cl-remove-if-not 'oozie--wf-is-flow-node nodes)))
@@ -357,7 +416,7 @@ variables not defined in the configuration file."
      ( 'default                           '()))))
 
 (defun oozie--wf-get-attr (attrib nodes)
-  "Give an list of nodes, returns a list with the value of _attrib_ for all thos nodes"
+  "Given a list of nodes, returns a list with the value of _attrib_ for all those nodes."
   (mapcar (lambda (n) (dom-attr n attrib)) nodes))
     
 (defun oozie-config-vars ()

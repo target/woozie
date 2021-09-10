@@ -3,7 +3,33 @@
 
 (load-file "ooziefuncs.el")
 
-;; tests
+;; helper functions
+
+;;===================================================================================
+;; HELPER FUNCTIONS
+;;===================================================================================
+(defun string-set= (l1 l2)
+  "returns l1 (or l2) if sets are equal, 'nil otherwise"
+  (and (= (length l1) (length l2))
+       (not (cl-set-difference l1 l2 :test 'string=))
+       (not (cl-set-difference l2 l1 :test 'string=))))
+
+(defun dom-from-file (filename)
+  "creates dom from xml file defined by FILENAME"
+  (with-temp-buffer
+    (insert-file-contents filename)
+    (libxml-parse-xml-region (point-min) (point-max))))
+
+;;===================================================================================
+;; FIXTURES
+;;===================================================================================
+
+(setq test-dom (dom-from-file "testdata/sampleworkflow.xml"))
+
+;;===================================================================================
+;; TESTS
+;;===================================================================================
+
 (ert-deftest list-hive-vars-test ()
   "Make sure that the hive vars are being properly extracted"
   (with-temp-buffer
@@ -51,14 +77,33 @@
 (ert-deftest node-names-test ()
   (with-temp-buffer
     (insert-file "./testdata/sampleworkflow.xml")
-    (should (equal (oozie--wf-flow-node-names) 	'("Fork1" "Action1" "Decison1" "Action2" "Action3" "KillAction" "End")))))
+    (should (equal (oozie--wf-flow-node-names) 	'("Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End")))))
 
 (ert-deftest transition-names-test ()
   (with-temp-buffer
     
     (insert-file "./testdata/sampleworkflow.xml")
-    (should (equal (oozie--wf-transition-names) '("Config" "Parallel1" "Parallel2" "DataprepSubflow" "ErrorEmail" "ModelerSubflow" "ModelStateUpdaterSubflow" "End" "ErrorEmail" "KillAction" "KillAction") ))))
+    (should (equal (oozie--wf-transition-names) '("Fork1" "Parallel1" "Parallel2" "Join1" "ErrorEmail" "Join1" "ErrorEmail" "Decision1" "ActionIfTrue" "ActionIfFalse" "End" "ErrorEmail" "End" "KillAction") ))))
 
+;;; tests for transition functions (dot-file creation related)
+
+(ert-deftest node-transition-test ()
+  "Tests that transitions for different types of flow nodes works properly"
+  (let ( (fork-node (car (dom-by-tag test-dom 'fork)))
+	 (join-node (car (dom-by-tag test-dom 'join)))
+	 (decision-node (car (dom-by-tag test-dom 'decision)))
+	 (action-node (car (dom-by-tag test-dom 'action))))
+    (should (equal (list (cons "Fork1" "Parallel1") (cons "Fork1" "Parallel2")) (oozie--wf-node-transitions fork-node)))
+    (should (equal (list (cons "Join1" "Decision1")) (oozie--wf-node-transitions join-node)))
+    (should (equal (list (cons "Decision1" "ActionIfTrue") (cons "Decision1" "ActionIfFalse")) (oozie--wf-node-transitions decision-node)))
+    (should (equal (list (cons "Parallel1" "Join1")) (oozie--wf-node-transitions action-node)))))
+
+(ert-deftest happy-path-transition-test ()
+  "Checks that the happy path is created correctly from incomplete paths"
+  (let ( (all-good-path (list (cons "A" "B") (cons "B" "C") (cons "A" "C") (cons "C" "D") (cons "start" "A")))
+	 (path-with-unreachable (list (cons "A" "B") (cons "B" "C") (cons "start" "A") (cons "D" "E") (cons "E" "F"))))
+    (should (equal all-good-path (oozie--wf-transitions-hp all-good-path)))
+    (should (equal (list (cons "A" "B") (cons "B" "C") (cons "start" "A")) (oozie--wf-transitions-hp path-with-unreachable)))))
 
 ;;; tests for visualization function
 
@@ -84,19 +129,14 @@
 	 (output
 	  (with-temp-buffer
 	    (insert-file "testdata/simplegraphworkflow.xml")
-	    (oozie-wf-visualize)
+	    (oozie-wf-mk-ascii)
 	    (buffer-string)))
 	 )
     (should (equal expected output))))
 
 
-;; helper functions
-(defun string-set= (l1 l2)
-  "returns l1 (or l2) if sets are equal, 'nil otherwise"
-  (and (= (length l1) (length l2))
-       (not (cl-set-difference l1 l2 :test 'string=))
-       (not (cl-set-difference l2 l1 :test 'string=))))
 
+;; test driver
 (ert-run-tests-batch)
 
 

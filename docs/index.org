@@ -69,38 +69,74 @@ the variables in the workflow definition that are missing from the configuration
 
 ** Workflow Visualization
 
+OozieEmacsLib supports visualizing Oozie workflows as directed acyclic graphs (DAGs).
+Limited support is provided for ASCII art visualization directly on Emacs.
+oozieEmacsLib can also generate DOT files that can then be used by other tools to create DAGS in many different formats.
+Details on both approaches can be found below.
+
+
+*** ASCII Visualization
+
 Workflow visualization is currently in its early stages, but it can be used.
-=M-x oozie-wf-visualize= displays an ASCII art representation of the workflow, like the example below:
+=M-x oozie-wf-mk-ascii= displays an ASCII art representation of the workflow, like the example below:
 
 #+BEGIN_SRC
-            +-------+           
-            | start |           
-            +-------+           
-                |               
-            +-------+           
-            | Step1 |           
-            +-------+           
-                |               
-        +---------------+       
-        | TheSecondStep |       
-        +---------------+       
-                |               
-            +-------+           
-            | StepC |           
-            +-------+           
-                |               
-  +--------------------------+  
-  | AllGoodThingsComeToAnEnd |  
-  +--------------------------+  
-
+      +-------+      
+      | start |      
+      +-------+      
+          |          
+      +-------+      
+      | Step1 |      
+      +-------+      
+          |          
+  +---------------+  
+  | TheSecondStep |  
+  +---------------+  
+          |          
+      +-------+      
+      | StepC |      
+      +-------+      
+          |          
+      +--------+     
+      | TheEnd |     
+      +--------+     
 #+END_SRC
 
 Unfortunately, /it is currently limited to workflows without conditionals or forks/.
+
+*** Dot file visualization
+
+You can also visualize the workflow in the current buffer by running =oozie-wf-mk-dot=.
+This will create a new buffer name =workflow.dot= with a [[https://graphviz.org/doc/info/lang.html][DOT]] file description of the workflow.
+Save the file and then you can use it as input to [[https://graphviz.org/][Graphviz]] or some similar program to generate a workflow graph in several different formats.
+
+Running =oozie-wf-mk-dot= on the example above generates the following output:
+#+BEGIN_SRC
+strict digraph {
+  start [shape=doublecircle]
+  AllGoodThingsComeToAnEnd [shape=doublecircle]
+  start -> Step1
+  Step1 -> TheSecondStep
+  TheSecondStep -> StepC
+  StepC -> AllGoodThingsComeToAnEnd
+  NotifyFailed -> ErrorEmail
+  ErrorEmail -> KillAction
+}
+#+END_SRC
+
+We can run it through the dot program to generate a png file by typing
+#+BEGIN_SRC bash
+dot -Tpng -oworkflow.png workflow.dot 
+#+END_SRC
+
+And get the result shown below:
+
+[[./workflow.png]]
+
 
 * What Is Coming Next?
 
 Oozie Emacs Lib still has a lot of room to grow. New features currently planned include:
 + User-defined templates for the different xml elements
-+ Exporting visualization as =*.dot= files
 + Improving ASCII visualization capabilities to include if-conditionals and forks.
 
