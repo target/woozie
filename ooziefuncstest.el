@@ -75,15 +75,12 @@
     (should (string-set= (oozie--find-all-delimited "{" "}") '("1" "2" "3") ))))
 
 (ert-deftest node-names-test ()
-  (with-temp-buffer
-    (insert-file "./testdata/sampleworkflow.xml")
-    (should (equal (oozie--wf-flow-node-names) 	'("Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End")))))
+  (should (equal (oozie--wf-flow-node-names test-dom)
+		 '("Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End"))))
 
 (ert-deftest transition-names-test ()
-  (with-temp-buffer
-    
-    (insert-file "./testdata/sampleworkflow.xml")
-    (should (equal (oozie--wf-transition-names) '("Fork1" "Parallel1" "Parallel2" "Join1" "ErrorEmail" "Join1" "ErrorEmail" "Decision1" "ActionIfTrue" "ActionIfFalse" "End" "ErrorEmail" "End" "KillAction") ))))
+  (should (equal (oozie--wf-transition-names test-dom)
+		 '("Fork1" "Parallel1" "Parallel2" "Join1" "ErrorEmail" "Join1" "ErrorEmail" "Decision1" "ActionIfTrue" "ActionIfFalse" "End" "ErrorEmail" "End" "KillAction") )))
 
 ;;; tests for transition functions (dot-file creation related)
 

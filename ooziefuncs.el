@@ -153,11 +153,12 @@ Validates the current workflow, checking:
   * actions have unique names
   * transitions are valid"
   (interactive)
-  (with-output-to-temp-buffer "*Oozie*"
-    (oozie--msg "=======================================================")
-    (oozie--msg "Validating workflow.....")
-    (oozie--validate-action-names)
-    (oozie--validate-action-transitions)))
+  (let ( (dom (libxml-parse-xml-region (point-min) (point-max))) )
+    (with-output-to-temp-buffer "*Oozie*"
+      (oozie--msg "=======================================================")
+      (oozie--msg "Validating workflow.....")
+      (oozie--validate-action-names dom)
+      (oozie--validate-action-transitions dom))))
 
 (defun oozie-wf-validate-config (config-file)
   "
@@ -342,10 +343,10 @@ variables not defined in the configuration file."
   (prin1 msg)
   (prin1 "\n"))
 
-(defun oozie--validate-action-transitions ()
+(defun oozie--validate-action-transitions (dom)
   "Checks if all action transitions are valid ones"
-  (let* ( (destinations (oozie--wf-flow-node-names))
-	  (transition-names (oozie--wf-transition-names))
+  (let* ( (destinations (oozie--wf-flow-node-names dom))
+	  (transition-names (oozie--wf-transition-names dom))
 	  (bad-transitions (cl-set-difference transition-names destinations :test 'string=))
 	  (unused-actions  (cl-set-difference destinations transition-names :test 'string=)))
     (if bad-transitions
@@ -360,8 +361,9 @@ variables not defined in the configuration file."
 	  (dolist (elem unused-actions)
 	    (oozie--msg (concat "~~~   " elem " action is not used.")))))))
 
-(defun oozie--validate-action-names ()
-  (let* ( (action-names (oozie--wf-flow-node-names) )
+(defun oozie--validate-action-names (dom)
+  "Prints a report on the *Oozie* buffer on action names. Gives total count and flags names that are not unique."
+  (let* ( (action-names (oozie--wf-flow-node-names dom) )
 	  (unique-action-names (cl-remove-duplicates  action-names :test 'string=))
 	  (repeated-names (cl-set-difference action-names unique-action-names :test 'string=)))
     
@@ -392,17 +394,15 @@ variables not defined in the configuration file."
 (defun oozie--wf-node-name (node)
   (dom-attr node 'name))
       
-(defun oozie--wf-flow-node-names ()
+(defun oozie--wf-flow-node-names (dom)
   "Returns the names of all flow nodes (action, decision, fork, etc.) in the current buffer xml"
-  (let* ( (dom (libxml-parse-xml-region (point-min) (point-max)))
-	  (nodes (dom-children dom))
+  (let* ( (nodes (dom-children dom))
 	  (flow-nodes (cl-remove-if-not 'oozie--wf-is-flow-node nodes)))
     (mapcar 'oozie--wf-node-name flow-nodes)))
 
-(defun oozie--wf-transition-names ()
+(defun oozie--wf-transition-names (dom)
   "Returns a list of transition targets"
-  (let* ( (dom (libxml-parse-xml-region (point-min) (point-max))) )
-    (apply 'append (mapcar 'oozie--wf-transition-node-dest (dom-children dom)))))
+  (apply 'append (mapcar 'oozie--wf-transition-node-dest (dom-children dom))))
 
 (defun oozie--wf-transition-node-dest (node)
   "If node is a transition node (a node with a _to_ attribute), returns the listed destinations, otherwise nil"
