@@ -114,11 +114,11 @@ Running =oozie-wf-mk-dot= on the example above generates the following output:
 #+BEGIN_SRC
 strict digraph {
   start [shape=doublecircle]
-  AllGoodThingsComeToAnEnd [shape=doublecircle]
+  TheEnd [shape=doublecircle]
   start -> Step1
   Step1 -> TheSecondStep
   TheSecondStep -> StepC
-  StepC -> AllGoodThingsComeToAnEnd
+  StepC -> TheEnd
   NotifyFailed -> ErrorEmail
   ErrorEmail -> KillAction
 }
@@ -133,10 +133,14 @@ And get the result shown below:
 
 [[./workflow.png]]
 
+If you have =dot= installed in your system (and in the path), you can just run =oozie-wf-view-dag= to have emacs create
+and display the DAG in Portable Network Graphic (png) format.
+
 
 * What Is Coming Next?
 
 Oozie Emacs Lib still has a lot of room to grow. New features currently planned include:
 + User-defined templates for the different xml elements
 + Improving ASCII visualization capabilities to include if-conditionals and forks.
++ Oozie cli commands for workflow management
 

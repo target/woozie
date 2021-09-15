@@ -4,7 +4,7 @@
 ;;
 ;; Authors: alexandre.santoro@target.com
 ;; Keywords: oozie workflow / hive 
-;; Version: 0.1.0-SNAPSHOT
+;; Version: 0.2.0
 
 ;;; Commentary:
 ;;
@@ -14,11 +14,8 @@
 ;;    * extracting variable information from one (or more) workflow.xml files and adding
 ;;      them to a config buffer, which can then serve as the basis for creating a confi-
 ;;      guration file.
+;;    * generating graph representations of the workflow
 ;;
-;; TODO LIST:
-;;    * hive action extracts and adds vars
-;;    * svg workflow diagram generation
-
 ;;; Code
 
 (require 'cl-lib)
@@ -214,7 +211,31 @@ variables not defined in the configuration file."
     (dolist (edge (oozie--wf-transitions-hp (oozie--wf-transitions dom)))
       (insert (concat "  " (car edge) " -> " (cdr edge) "\n")))
     (insert "}\n")))
-  
+
+;;------------------------------------------------------------------------------------------------
+;; DOT functions
+;;
+;; Note: these functions are only added if the =dot= tool is available
+;;------------------------------------------------------------------------------------------------
+(if (string-prefix-p "dot" (shell-command-to-string "dot -V"))
+    (progn
+
+      (message "OOZIE: Found dot tool. Defining graph display functions.")
+      
+      (defun oozie-wf-view-dag ()
+	"Visualize the workflow in the current buffer as a dag in png format."
+	(interactive)
+	(let ( (buffer-modified-p nil)
+	       (dotfile (concat "/tmp/ooziewf." (number-to-string (emacs-pid)) ".dot"))
+	       (pngfile (concat "/tmp/ooziewf." (number-to-string (emacs-pid)) ".png")))
+	  (oozie-wf-mk-dot) 
+	  (write-file dotfile)
+	  (kill-buffer)
+	  (shell-command (concat "dot -Tpng " dotfile " > " pngfile))
+	  (find-file pngfile)))
+
+      ))
+
 
 ;;------------------------------------------------------------------------------------------------
 ;; helper functions
@@ -280,6 +301,7 @@ variables not defined in the configuration file."
       (concat " " val))))
 
 (defun oozie--graph-box (val width)
+  "Returns an ASCII representation of a box with width WIDTH and text VAL."
   (let* ( (top (concat "+-" (make-string (length val) ?-)  "-+"))
 	  (middle (concat "| " val " |"))
 	  (bottom top))
@@ -473,13 +495,11 @@ current buffer.
   (not (string-prefix-p "wf:" var)))
 
 (defun oozie-get-line ()
-  "Gets the line from the current buffer"
+  "Gets the current line (the one including point) from the current buffer"
   (let ( (start (line-beginning-position))
 	 (end   (line-end-position))
 	 )
     (if (< start end)
 	(buffer-substring-no-properties start end)
       '())))
-  
-  
-    
+
