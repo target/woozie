@@ -21,7 +21,25 @@
 (require 'cl-lib)
 (require 'dom)
 
-;; commands
+;;----------------------------------------------------------------------------------------
+;; user-configurable variables
+;;----------------------------------------------------------------------------------------
+
+;; provides the attributes used in DOT node definitions. Users can  change these values
+;; to set shape, color, font, etc.
+(defvar oozie-dot-node-attribs (list (cons 'start    "[shape=doublecircle]")
+				     (cons 'end      "[shape=doublecircle]")
+				     (cons 'action   "")
+				     (cons 'fork     "[shape=box]")
+				     (cons 'join     "[shape=box]")
+				     (cons 'decision "[shape=diamond]"))
+  "An association list mapping workflow element types to their respective DOT node attributes.")
+
+
+
+;;----------------------------------------------------------------------------------------
+;; user (interactive) functions
+;;----------------------------------------------------------------------------------------
 
 (defun oozie-wf-mk (jobname)
   "Adds a skeleton workflow definition to the current buffer"
@@ -199,16 +217,19 @@ variables not defined in the configuration file."
   "Creates a buffer with a dot format representation of the workflow in the current buffer."
   (interactive)
   (let* ( (dom (libxml-parse-xml-region (point-min) (point-max)))
-	  (end (dom-attr (car (dom-by-tag dom 'end)) 'name))
+	  (nodes (oozie--wf-flow-nodes dom))
+	  (happy-transitions (oozie--wf-transitions-hp (oozie--wf-transitions dom)))
+	  (happy-node-names (oozie--wf-transition-nodes happy-transitions))
+	  (happy-nodes (cl-remove-if-not (lambda (n) (member (oozie--wf-node-name n) happy-node-names)) nodes)) 
 	 )
     
     (switch-to-buffer (generate-new-buffer "workflow.dot"))
     (insert "strict digraph {\n")
-    (insert "\n  // nodes with diff. shape requirements\n")
-    (insert "  start [shape=doublecircle]\n")
-    (insert (concat "  " end " [shape=doublecircle]\n"))
+    (insert "\n  // nodes\n")
+    (dolist (node happy-nodes)
+      (insert " " (oozie--dot-node node) "\n"))
     (insert "\n  // transitions\n")
-    (dolist (edge (oozie--wf-transitions-hp (oozie--wf-transitions dom)))
+    (dolist (edge happy-transitions)
       (insert (concat "  " (car edge) " -> " (cdr edge) "\n")))
     (insert "}\n")))
 
@@ -249,6 +270,15 @@ variables not defined in the configuration file."
   (let* ((nodes (dom-children dom)) )
       (mapcan 'oozie--wf-node-transitions nodes)))
 
+(defun oozie--wf-transition-nodes (transitions)
+  "Given a list of transitions, returns all the nodes specified in it."
+  (let ( (froms (mapcar 'car transitions))
+	 (tos   (mapcar 'cdr transitions)) )
+    (delete-dups (append froms tos))))
+
+
+;; TODO: see if we can change the lambda function to check if the edge being tested for removal
+;;       checks by checking against /all/ no-in-edge nodes, not only the first.
 (defun oozie--wf-transitions-hp (transitions)
   "Returns only the happy path transitions for the list.
 
@@ -397,6 +427,17 @@ variables not defined in the configuration file."
 	(dolist (elem repeated-names)
 	  (oozie--msg (concat "---    " elem)))))))
 
+;; TODO: Combine functions
+;;
+;; the difference between the two functions below is that the first one returns true for
+;; 'start nodes and the second one doesn't. We should change the code so we only have
+;; the first functions, and modify the code calling it to account for the presence of
+;; 'start if needed.
+(defun oozie--wf-is-flow-node-p (node)
+  "Returns true if node is a node that participates in a flow"
+  (or (equal 'start (dom-tag node))
+      (oozie--wf-is-flow-node node)))
+
 (defun oozie--wf-is-flow-node (node)
   "Returns true if the node is a node used in defining flow"
   (let ( (n (dom-tag node)) )
@@ -407,6 +448,12 @@ variables not defined in the configuration file."
 	(equal n 'end)
 	(equal n 'kill))))
 
+;; TODO(END)
+
+(defun oozie--wf-hp-nodes (transitions)
+  "Returns the list of happy path nodes, which are the nodes accessible from 'start. Includes 'start' in the list."
+   ...)
+    
 (defun oozie--wf-is-graph-node (node)
   (let ( (n (dom-tag node)) )
     (or (equal n 'action)
@@ -414,8 +461,18 @@ variables not defined in the configuration file."
 	(equal n 'end))))
 
 (defun oozie--wf-node-name (node)
-  (dom-attr node 'name))
-      
+  "Returns the value of the name attribute, if the node has one, or the dom-tag/element name if not."
+  (let ( (name (dom-attr node 'name)))
+    (if name
+	name
+      (symbol-name (dom-tag node)))))
+
+(defun oozie--wf-flow-nodes (dom)
+  "Returns all flow nodes in the workflow definition. Flow nodes are all nodes that the workflow can 
+   transition through, including `start` and `end`"
+  (let ( (top-level-nodes (dom-children dom)))
+    (cl-remove-if-not 'oozie--wf-is-flow-node-p top-level-nodes)))
+  
 (defun oozie--wf-flow-node-names (dom)
   "Returns the names of all flow nodes (action, decision, fork, etc.) in the current buffer xml"
   (let* ( (nodes (dom-children dom))
@@ -436,6 +493,14 @@ variables not defined in the configuration file."
      ( (equal node-name 'decision) (oozie--wf-get-attr 'to    (append (dom-by-tag node 'case) (dom-by-tag node 'default))))
      ( (equal node-name 'fork)     (oozie--wf-get-attr 'start (dom-by-tag node 'path)))
      ( 'default                           '()))))
+
+(defun oozie--dot-node (node)
+  "Returns a string with the DOT node definition."
+  (let ( (type (dom-tag node))
+	 (name (oozie--wf-node-name node)))
+    (concat name " " (alist-get type oozie-dot-node-attribs))))
+
+
 
 (defun oozie--wf-get-attr (attrib nodes)
   "Given a list of nodes, returns a list with the value of _attrib_ for all those nodes."

@@ -25,6 +25,9 @@
 ;;===================================================================================
 
 (setq test-dom (dom-from-file "testdata/sampleworkflow.xml"))
+(setq start-node (car (dom-by-tag test-dom 'start)))
+(setq action-node (car (dom-by-tag test-dom 'action)))
+(setq end-node (car (dom-by-tag test-dom 'end)))
 
 ;;===================================================================================
 ;; TESTS
@@ -132,6 +135,30 @@
     (should (equal expected output))))
 
 
+(ert-deftest node-name-test ()
+  "Tests that the node name function returns the value of the name attribute or type of element if name not present."
+  (let ( (no-name-node (list 'noname '() (list 'subelement)))
+	 (named-node   (list 'named-node (list (cons 'name "valid-name")))) )
+    (should (equal "noname" (oozie--wf-node-name no-name-node)))
+    (should (equal "valid-name" (oozie--wf-node-name named-node)))))
+
+(ert-deftest dot-node-desc-test ()
+  "Tests that the function that returns the dot-node info returns appropriate values"
+  (should (equal "start [shape=doublecircle]" (oozie--dot-node start-node))))
+
+(ert-deftest flow-nodes-test ()
+  "Tests that the flow-nodes function returns all flow nodes, including start and end"
+  (let* ( (flow-nodes  (oozie--wf-flow-nodes test-dom))
+	  (node-names  (mapcar 'oozie--wf-node-name flow-nodes)))
+    (should (equal node-names
+		  '("start" "Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End")))))
+
+
+(ert-deftest nodes-from-transitions-test ()
+  "Tests that we extract a proper list of nodes from a list of transitions"
+  (let ( (transitions (list (cons 'A 'B) (cons 'A 'C) (cons 'B 'D))))
+    (should (equal (oozie--wf-transition-nodes transitions)
+		   '(A B C D)))))
 
 ;; test driver
 (ert-run-tests-batch)

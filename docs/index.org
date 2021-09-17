@@ -113,14 +113,19 @@ Save the file and then you can use it as input to [[https://graphviz.org/][Graph
 Running =oozie-wf-mk-dot= on the example above generates the following output:
 #+BEGIN_SRC
 strict digraph {
-  start [shape=doublecircle]
-  TheEnd [shape=doublecircle]
+
+  // nodes
+ start [shape=doublecircle]
+ Step1 
+ TheSecondStep 
+ StepC 
+ TheEnd [shape=doublecircle]
+
+  // transitions
   start -> Step1
   Step1 -> TheSecondStep
   TheSecondStep -> StepC
   StepC -> TheEnd
-  NotifyFailed -> ErrorEmail
-  ErrorEmail -> KillAction
 }
 #+END_SRC
 
@@ -135,6 +140,31 @@ And get the result shown below:
 
 If you have =dot= installed in your system (and in the path), you can just run =oozie-wf-view-dag= to have emacs create
 and display the DAG in Portable Network Graphic (png) format.
+
+**** Changing the Color and Shape of Nodes in the Generated DOT File
+
+If you don't like the shape and colors of the different nodes in your workflow graph, you can change them easily.
+Just modify the variable =oozie-dot-node-attribs= and define the desired node attributes for the different workflow node types.
+It stores an association (map) between node type and node attributes to use.
+The default value of the variable is as follows:
+
+#+BEGIN_SRC emacs-lisp
+ (list  (cons 'start    "[shape=doublecircle]")
+	(cons 'end      "[shape=doublecircle]")
+	(cons 'action   "")
+	(cons 'fork     "[shape=box]")
+	(cons 'join     "[shape=box]")
+	(cons 'decision "[shape=diamond]"))
+#+END_SRC
+
+You can change the value of the attributes of the list by adding them to the beginning of the list via =cons=.
+For example, to change the color of action nodes to be red you could do the following:
+
+#+BEGIN_SRC emacs-lisp
+  (cons (cons 'action "[color=RED]") oozie-dot-node-attribs))
+#+END_SRC
+
+Thought not strictly necessary, you can remove the older key-value pair by calling =assq-delete-all= before adding the new value.
 
 
 * What Is Coming Next?
