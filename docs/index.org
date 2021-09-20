@@ -139,7 +139,7 @@ And get the result shown below:
 [[./workflow.png]]
 
 If you have =dot= installed in your system (and in the path), you can just run =oozie-wf-view-dag= to have emacs create
-and display the DAG in Portable Network Graphic (png) format.
+and display the DAG in any dot-supported format you want. Default is PNG.
 
 **** Changing the Color and Shape of Nodes in the Generated DOT File
 

@@ -79,7 +79,7 @@
 
 (ert-deftest node-names-test ()
   (should (equal (oozie--wf-flow-node-names test-dom)
-		 '("Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End"))))
+		 '("start" "Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End"))))
 
 (ert-deftest transition-names-test ()
   (should (equal (oozie--wf-transition-names test-dom)

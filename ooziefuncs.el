@@ -243,18 +243,18 @@ variables not defined in the configuration file."
 
       (message "OOZIE: Found dot tool. Defining graph display functions.")
       
-      (defun oozie-wf-view-dag ()
-	"Visualize the workflow in the current buffer as a dag in png format."
-	(interactive)
-	(let ( (buffer-modified-p nil)
-	       (dotfile (concat "/tmp/ooziewf." (number-to-string (emacs-pid)) ".dot"))
-	       (pngfile (concat "/tmp/ooziewf." (number-to-string (emacs-pid)) ".png")))
+      (defun oozie-wf-view-dag (dag-type)
+	"Visualize the workflow in the current buffer as a dag in the format defined by DAG-TYPE. Defaults to PNG"
+	(interactive "simage type (PNG): ")
+	(let* ( (buffer-modified-p nil)
+		(img-type (if (equal "" dag-type) "png" dag-type))
+		(dotfile (concat "/tmp/ooziewf." (number-to-string (emacs-pid)) ".dot"))
+		(outfile (concat "/tmp/ooziewf." (number-to-string (emacs-pid)) "." (downcase img-type))))
 	  (oozie-wf-mk-dot) 
 	  (write-file dotfile)
 	  (kill-buffer)
-	  (shell-command (concat "dot -Tpng " dotfile " > " pngfile))
-	  (find-file pngfile)))
-
+	  (shell-command (concat "dot -T" img-type " " dotfile " > " outfile))
+	  (find-file outfile)))
       ))
 
 
@@ -276,9 +276,6 @@ variables not defined in the configuration file."
 	 (tos   (mapcar 'cdr transitions)) )
     (delete-dups (append froms tos))))
 
-
-;; TODO: see if we can change the lambda function to check if the edge being tested for removal
-;;       checks by checking against /all/ no-in-edge nodes, not only the first.
 (defun oozie--wf-transitions-hp (transitions)
   "Returns only the happy path transitions for the list.
 
@@ -287,7 +284,7 @@ variables not defined in the configuration file."
 	  (tos   (cons "start" (mapcar 'cdr transitions)))
 	  (no-in-edge (cl-set-difference froms tos :test #'equal)) )
     (if no-in-edge
-	(oozie--wf-transitions-hp (cl-remove-if (lambda (x) (equal (car no-in-edge) (car x))) transitions))
+	(oozie--wf-transitions-hp (cl-remove-if (lambda (x) (member (car x) no-in-edge)) transitions))
       transitions)))
     
 (defun oozie--wf-node-transitions (node)
@@ -427,28 +424,10 @@ variables not defined in the configuration file."
 	(dolist (elem repeated-names)
 	  (oozie--msg (concat "---    " elem)))))))
 
-;; TODO: Combine functions
-;;
-;; the difference between the two functions below is that the first one returns true for
-;; 'start nodes and the second one doesn't. We should change the code so we only have
-;; the first functions, and modify the code calling it to account for the presence of
-;; 'start if needed.
 (defun oozie--wf-is-flow-node-p (node)
   "Returns true if node is a node that participates in a flow"
-  (or (equal 'start (dom-tag node))
-      (oozie--wf-is-flow-node node)))
+  (member (dom-tag node) '(start action decision join fork end kill)))
 
-(defun oozie--wf-is-flow-node (node)
-  "Returns true if the node is a node used in defining flow"
-  (let ( (n (dom-tag node)) )
-    (or (equal n 'action)
-	(equal n 'decision)
-	(equal n 'join)
-	(equal n 'fork)
-	(equal n 'end)
-	(equal n 'kill))))
-
-;; TODO(END)
 
 (defun oozie--wf-hp-nodes (transitions)
   "Returns the list of happy path nodes, which are the nodes accessible from 'start. Includes 'start' in the list."
@@ -475,9 +454,7 @@ variables not defined in the configuration file."
   
 (defun oozie--wf-flow-node-names (dom)
   "Returns the names of all flow nodes (action, decision, fork, etc.) in the current buffer xml"
-  (let* ( (nodes (dom-children dom))
-	  (flow-nodes (cl-remove-if-not 'oozie--wf-is-flow-node nodes)))
-    (mapcar 'oozie--wf-node-name flow-nodes)))
+    (mapcar 'oozie--wf-node-name (oozie--wf-flow-nodes dom)))
 
 (defun oozie--wf-transition-names (dom)
   "Returns a list of transition targets"
