@@ -1,9 +1,7 @@
-;;; ooziefuncs.el --- functions for building oozie workflows 
-
-;; Copyright (c) 2016, Target Corp.
+;; Copyright (c) 2016-2021, Target Corp.
 ;;
 ;; Authors: alexandre.santoro@target.com
-;; Keywords: oozie workflow / hive 
+
 ;; Version: 0.2.0
 
 ;;; Commentary:
@@ -163,10 +161,11 @@
   (insert "            <file>" filename "</file>"))
 
 (defun oozie-wf-validate ()
-  "
-Validates the current workflow, checking:
-  * actions have unique names
-  * transitions are valid"
+  "Performs validations on the oozie workflow xml defined in the current buffer. This includes:
+  * Actions have unique names
+  * Transitions are to existing nodes
+  * All relevant nodes have incoming transitions
+"
   (interactive)
   (let ( (dom (libxml-parse-xml-region (point-min) (point-max))) )
     (with-output-to-temp-buffer "*Oozie*"
@@ -218,7 +217,8 @@ variables not defined in the configuration file."
   (interactive)
   (let* ( (dom (libxml-parse-xml-region (point-min) (point-max)))
 	  (nodes (oozie--wf-flow-nodes dom))
-	  (happy-transitions (oozie--wf-transitions-hp (oozie--wf-transitions dom)))
+	  (ok-transitions (cl-remove-if (lambda (tr) (equal 'error (caddr tr))) (oozie--wf-transitions dom)))
+	  (happy-transitions (oozie--wf-transitions-hp ok-transitions))
 	  (happy-node-names (oozie--wf-transition-nodes happy-transitions))
 	  (happy-nodes (cl-remove-if-not (lambda (n) (member (oozie--wf-node-name n) happy-node-names)) nodes)) 
 	 )
@@ -230,7 +230,7 @@ variables not defined in the configuration file."
       (insert " " (oozie--dot-node node) "\n"))
     (insert "\n  // transitions\n")
     (dolist (edge happy-transitions)
-      (insert (concat "  " (car edge) " -> " (cdr edge) "\n")))
+      (insert (concat "  " (car edge) " -> " (cadr edge) "\n")))
     (insert "}\n")))
 
 ;;------------------------------------------------------------------------------------------------
@@ -263,17 +263,18 @@ variables not defined in the configuration file."
 ;;------------------------------------------------------------------------------------------------
 
 ;; notes:
-;;  + transitions are represented as a cons-pair: ( FROM . TO)
+;;  + transitions are represented as a triple: (FROM . TO . type) where type is either 'ok or 'error
 
 (defun oozie--wf-transitions (dom)
-  "Returns a list of all the transitions in the workflow, where each transitions is represented as (from . to)"
+  "Returns a list of all the transitions in the workflow, where each transitions is represented as (from . to).
+   If INCLUDE-ERROR is true, also include error transitions"
   (let* ((nodes (dom-children dom)) )
       (mapcan 'oozie--wf-node-transitions nodes)))
 
 (defun oozie--wf-transition-nodes (transitions)
   "Given a list of transitions, returns all the nodes specified in it."
   (let ( (froms (mapcar 'car transitions))
-	 (tos   (mapcar 'cdr transitions)) )
+	 (tos   (mapcar 'cadr transitions)) )
     (delete-dups (append froms tos))))
 
 (defun oozie--wf-transitions-hp (transitions)
@@ -281,33 +282,40 @@ variables not defined in the configuration file."
 
    Happy path is defined as all traversals reachable from node named 'start'."
   (let* ( (froms (mapcar 'car transitions))
-	  (tos   (cons "start" (mapcar 'cdr transitions)))
+	  (tos   (cons "start" (mapcar 'cadr transitions)))
 	  (no-in-edge (cl-set-difference froms tos :test #'equal)) )
     (if no-in-edge
 	(oozie--wf-transitions-hp (cl-remove-if (lambda (x) (member (car x) no-in-edge)) transitions))
       transitions)))
-    
+
 (defun oozie--wf-node-transitions (node)
-  "Returns a list containing the transitions for this node, if it is a flow node, return an empty list otherwise."
+  "Returns a list containing the transitions for this node, if it is a flow node, return an empty list otherwise.
+   If INCLUDE-ERROR is true, also include error transtions"
   (let ( (node-type (dom-tag node)))
-    (cond ((equal 'start node-type) (list (cons "start" (dom-attr node 'to))))
-	  ((equal 'action node-type) (list (cons (dom-attr node 'name) (dom-attr (car (dom-by-tag node 'ok)) 'to))))
+    (cond ((equal 'start node-type) (list (list "start" (dom-attr node 'to) 'ok)))
+	  ((equal 'action node-type) (oozie--wf-action-transitions node))
 	  ((equal 'fork node-type) (oozie--wf-fork-transitions node))
-	  ((equal 'join node-type) (list (cons (dom-attr node 'name) (dom-attr node 'to))))
+	  ((equal 'join node-type) (list (list (dom-attr node 'name) (dom-attr node 'to) 'ok)))
 	  ((equal 'decision node-type) (oozie--wf-decision-transitions node))
 	  (t '()))))
+
+(defun oozie--wf-action-transitions (action-node)
+  (let ( (ok-transition (list (dom-attr node 'name)    (dom-attr (car (dom-by-tag node 'ok)) 'to) 'ok))
+	 (error-transition (list (dom-attr node 'name) (dom-attr (car (dom-by-tag node 'error)) 'to) 'error)) )
+    (list ok-transition error-transition)))
+
 
 (defun oozie--wf-fork-transitions (fork-node)
   "Extracts transitions for a fork node"
   (let ((from (dom-attr fork-node 'name)))
-    (mapcar (lambda (path) (cons from (dom-attr path 'start))) (dom-by-tag fork-node 'path))))
+    (mapcar (lambda (path) (list from (dom-attr path 'start) 'ok)) (dom-by-tag fork-node 'path))))
 
 (defun oozie--wf-decision-transitions (decision-node)
   "Extracts transitions for a decision node"
   (let* ((from (dom-attr decision-node 'name))
 	 (switch-node (car (dom-by-tag decision-node 'switch)))
 	 )
-    (mapcar (lambda (case) (cons from (dom-attr case 'to))) (append (dom-by-tag switch-node 'case) (dom-by-tag switch-node 'default)))))
+    (mapcar (lambda (case) (list from (dom-attr case 'to) 'ok)) (append (dom-by-tag switch-node 'case) (dom-by-tag switch-node 'default)))))
 
 (defun oozie--graph-print (path)
   "Prints the path as specified."
@@ -395,44 +403,38 @@ variables not defined in the configuration file."
 (defun oozie--validate-action-transitions (dom)
   "Checks if all action transitions are valid ones"
   (let* ( (destinations (oozie--wf-flow-node-names dom))
-	  (transition-names (oozie--wf-transition-names dom))
-	  (bad-transitions (cl-set-difference transition-names destinations :test 'string=))
-	  (unused-actions  (cl-set-difference destinations transition-names :test 'string=)))
-    (if bad-transitions
+	  (transitions (oozie--wf-transitions dom))
+	  (transition-destinations (append (mapcar 'cadr transitions) '("start")))
+	  (bad-transitions (cl-remove-if (lambda (x) (member (cadr x) destinations)) transitions))
+	  (unused-actions  (cl-set-difference destinations transition-destinations :test 'string=)))
+    (if (or bad-transitions unused-actions)
 	(progn
-	  (oozie--msg "--- Bad transitions exist.")
+	  (oozie--msg "--- TRANSITION ERRORS!")
 	  (dolist (elem bad-transitions)
-	    (oozie--msg (concat "---   bad transition to " elem))))
-      (oozie--msg "+++ All transitions are valid."))
-    (if unused-actions
-	(progn
-	  (oozie--msg "~~~ The following actions are not used:")
+	    (oozie--msg (concat "---   bad destination for transition: " (car elem) " -> " (cadr elem))))
 	  (dolist (elem unused-actions)
-	    (oozie--msg (concat "~~~   " elem " action is not used.")))))))
+	    (oozie--msg (concat "~~~   no transitions exist to node " elem))))
+      (progn
+	(oozie--msg "+++ All transitions are valid.")
+	(oozie--msg "+++ All nodes have incoming transitions.")))))
 
 (defun oozie--validate-action-names (dom)
   "Prints a report on the *Oozie* buffer on action names. Gives total count and flags names that are not unique."
   (let* ( (action-names (oozie--wf-flow-node-names dom) )
-	  (unique-action-names (cl-remove-duplicates  action-names :test 'string=))
-	  (repeated-names (cl-set-difference action-names unique-action-names :test 'string=)))
-    
-    (if (= (length action-names) (length unique-action-names))
-	(oozie--msg (concat "+++ " (number-to-string (length action-names)) " action names, all unique"))
+	  (repeated-names (oozie--list-duplicates action-names)))
+    (if repeated-names
       (progn
-	(oozie--msg "--- Action names are NOT unique")
+	(oozie--msg "--- ACTION ERRORS!")
 	(oozie--msg "--- The following action names are repeated: ")
 	(dolist (elem repeated-names)
-	  (oozie--msg (concat "---    " elem)))))))
+	  (oozie--msg (concat "---    " elem))))
+      (oozie--msg (concat "+++ " (number-to-string (length action-names)) " action names, all unique")))))
 
 (defun oozie--wf-is-flow-node-p (node)
   "Returns true if node is a node that participates in a flow"
   (member (dom-tag node) '(start action decision join fork end kill)))
 
 
-(defun oozie--wf-hp-nodes (transitions)
-  "Returns the list of happy path nodes, which are the nodes accessible from 'start. Includes 'start' in the list."
-   ...)
-    
 (defun oozie--wf-is-graph-node (node)
   (let ( (n (dom-tag node)) )
     (or (equal n 'action)
@@ -455,21 +457,6 @@ variables not defined in the configuration file."
 (defun oozie--wf-flow-node-names (dom)
   "Returns the names of all flow nodes (action, decision, fork, etc.) in the current buffer xml"
     (mapcar 'oozie--wf-node-name (oozie--wf-flow-nodes dom)))
-
-(defun oozie--wf-transition-names (dom)
-  "Returns a list of transition targets"
-  (apply 'append (mapcar 'oozie--wf-transition-node-dest (dom-children dom))))
-
-(defun oozie--wf-transition-node-dest (node)
-  "If node is a transition node (a node with a _to_ attribute), returns the listed destinations, otherwise nil"
-  (let ( (node-name (dom-tag node)) )
-    (cond
-     ( (equal node-name 'start)    (oozie--wf-get-attr 'to    (list node)))
-     ( (equal node-name 'join)     (oozie--wf-get-attr 'to    (list node)))
-     ( (equal node-name 'action)   (oozie--wf-get-attr 'to    (append (dom-by-tag node 'ok) (dom-by-tag node 'error))))
-     ( (equal node-name 'decision) (oozie--wf-get-attr 'to    (append (dom-by-tag node 'case) (dom-by-tag node 'default))))
-     ( (equal node-name 'fork)     (oozie--wf-get-attr 'start (dom-by-tag node 'path)))
-     ( 'default                           '()))))
 
 (defun oozie--dot-node (node)
   "Returns a string with the DOT node definition."
@@ -508,7 +495,7 @@ current buffer.
 
 
 (defun oozie--find-delimited-from-point (delim1 delim2 &optional include-dupes)
-  "Returns a list with all **unique** values in the current buffer bounded by the two delimiters,
+  "Returns a list with all (possibly unique) values in the current buffer bounded by the two delimiters,
    starting at the current point."
   (let* ( (start (search-forward delim1 nil 't))
 	  (end   (progn (search-forward delim2 nil 't) (backward-char) (point)))
@@ -545,3 +532,12 @@ current buffer.
 	(buffer-substring-no-properties start end)
       '())))
 
+(defun oozie--list-duplicates (l &optional cur-dups)
+  "Given a list, return all elements that occur more than once."
+  (let ( (first (car l))
+	 (rest (cdr l)) )
+    (cond ( (equal l '()) cur-dups )
+	  ( (member first cur-dups) (oozie--list-duplicates rest cur-dups))
+	  ( (member first rest)  (oozie--list-duplicates rest (cons first cur-dups)))
+	  ( t  (oozie--list-duplicates rest cur-dups)))))
+   

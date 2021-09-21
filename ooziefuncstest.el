@@ -81,11 +81,6 @@
   (should (equal (oozie--wf-flow-node-names test-dom)
 		 '("start" "Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End"))))
 
-(ert-deftest transition-names-test ()
-  (should (equal (oozie--wf-transition-names test-dom)
-		 '("Fork1" "Parallel1" "Parallel2" "Join1" "ErrorEmail" "Join1" "ErrorEmail" "Decision1" "ActionIfTrue" "ActionIfFalse" "End" "ErrorEmail" "End" "KillAction") )))
-
-;;; tests for transition functions (dot-file creation related)
 
 (ert-deftest node-transition-test ()
   "Tests that transitions for different types of flow nodes works properly"
@@ -93,17 +88,17 @@
 	 (join-node (car (dom-by-tag test-dom 'join)))
 	 (decision-node (car (dom-by-tag test-dom 'decision)))
 	 (action-node (car (dom-by-tag test-dom 'action))))
-    (should (equal (list (cons "Fork1" "Parallel1") (cons "Fork1" "Parallel2")) (oozie--wf-node-transitions fork-node)))
-    (should (equal (list (cons "Join1" "Decision1")) (oozie--wf-node-transitions join-node)))
-    (should (equal (list (cons "Decision1" "ActionIfTrue") (cons "Decision1" "ActionIfFalse")) (oozie--wf-node-transitions decision-node)))
-    (should (equal (list (cons "Parallel1" "Join1")) (oozie--wf-node-transitions action-node)))))
+    (should (equal '(("Fork1" "Parallel1" ok) ("Fork1" "Parallel2" ok)) (oozie--wf-node-transitions fork-node)))
+    (should (equal '(("Join1" "Decision1" ok)) (oozie--wf-node-transitions join-node)))    
+    (should (equal '(("Decision1" "ActionIfTrue" ok) ("Decision1" "ActionIfFalse" ok)) (oozie--wf-node-transitions decision-node)))
+    (should (equal '(("Parallel1" "Join1" ok) ("Parallel1" "ErrorEmail" error)) (oozie--wf-node-transitions action-node)))))
 
 (ert-deftest happy-path-transition-test ()
   "Checks that the happy path is created correctly from incomplete paths"
-  (let ( (all-good-path (list (cons "A" "B") (cons "B" "C") (cons "A" "C") (cons "C" "D") (cons "start" "A")))
-	 (path-with-unreachable (list (cons "A" "B") (cons "B" "C") (cons "start" "A") (cons "D" "E") (cons "E" "F"))))
+  (let ( (all-good-path '(("A" "B" ok) ("B" "C" ok) ("A" "C" ok) ("C" "D" ok) ("start" "A" ok)))
+	 (path-with-unreachable (list (list "A" "B" 'ok) (list "B" "C" 'ok) (list "start" "A" 'ok) (list "D" "E" 'ok) (list "E" "F" 'ok))))
     (should (equal all-good-path (oozie--wf-transitions-hp all-good-path)))
-    (should (equal (list (cons "A" "B") (cons "B" "C") (cons "start" "A")) (oozie--wf-transitions-hp path-with-unreachable)))))
+    (should (equal (list (list "A" "B" 'ok) (list "B" "C" 'ok) (list "start" "A" 'ok)) (oozie--wf-transitions-hp path-with-unreachable)))))
 
 ;;; tests for visualization function
 
@@ -156,9 +151,18 @@
 
 (ert-deftest nodes-from-transitions-test ()
   "Tests that we extract a proper list of nodes from a list of transitions"
-  (let ( (transitions (list (cons 'A 'B) (cons 'A 'C) (cons 'B 'D))))
+  (let ( (transitions (list (list 'A 'B 'ok) (list 'A 'C 'ok) (list 'B 'D 'ok))))
     (should (equal (oozie--wf-transition-nodes transitions)
 		   '(A B C D)))))
+
+(ert-deftest duplicates-test ()
+  "Tests that the function that returns duplicates indeed returns duplicates"
+  (should (equal '() (oozie--list-duplicates '())))
+  (should (equal '() (oozie--list-duplicates '("a"))))
+  (should (equal '() (oozie--list-duplicates '("a" "b"))))
+  (should (equal '("a") (oozie--list-duplicates '("a" "b" "c" "a"))))
+  (should (equal '("b" "a") (oozie--list-duplicates '("a" "a" "b" "c" "d" "b" "e"))))
+  (should (equal '("b" "a") (oozie--list-duplicates '("a" "a" "b" "c" "d" "a" "a" "b")))))
 
 ;; test driver
 (ert-run-tests-batch)
