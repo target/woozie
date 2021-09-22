@@ -1,3 +1,4 @@
+;;;  -*- lexical-binding: t; -*-
 ;; Copyright (c) 2016-2021, Target Corp.
 ;;
 ;; Authors: alexandre.santoro@target.com
@@ -300,8 +301,8 @@ variables not defined in the configuration file."
 	  (t '()))))
 
 (defun oozie--wf-action-transitions (action-node)
-  (let ( (ok-transition (list (dom-attr node 'name)    (dom-attr (car (dom-by-tag node 'ok)) 'to) 'ok))
-	 (error-transition (list (dom-attr node 'name) (dom-attr (car (dom-by-tag node 'error)) 'to) 'error)) )
+  (let ( (ok-transition (list (dom-attr action-node 'name)    (dom-attr (car (dom-by-tag action-node 'ok)) 'to) 'ok))
+	 (error-transition (list (dom-attr action-node 'name) (dom-attr (car (dom-by-tag action-node 'error)) 'to) 'error)) )
     (list ok-transition error-transition)))
 
 

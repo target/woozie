@@ -1,3 +1,4 @@
+;;;  -*- lexical-binding: t; -*-
 ;; unit tests for the ooziefuncs package
 ;;
 
@@ -80,7 +81,6 @@
 (ert-deftest node-names-test ()
   (should (equal (oozie--wf-flow-node-names test-dom)
 		 '("start" "Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End"))))
-
 
 (ert-deftest node-transition-test ()
   "Tests that transitions for different types of flow nodes works properly"
