@@ -1,116 +1,96 @@
-#+title: Oozie Emacs Lib User Manual
+#+title: Woozie User Manual
 
 * Overview
 
-Oozie Emacs Lib is a collection of emacs functions that aid in the creation and maintenance of Oozie workflows.
+Woozie is a collection of emacs-lisp functions that aid in the creation and maintenance of Oozie workflows.
 This library makes it easier to create workflow definitions and corresponding configuration files.
 It can also be used to validate workflows.
 
 * Environment Setup
 
 
-Setting up Emacs to use this library is trivial.  All you have to do is download  =ooziefuncs.el= to your machine.
+Setting up Emacs to use this library is trivial.  All you have to do is download  =woozie.el= to your machine.
 Then copy it to where you want it reside and add the following to your emacs configuration file (usually =.emacs= or =.emacs.d/init.el=):
 
 #+BEGIN_SRC emacs-lisp
-(load-file "path/to/ooziefuncs.el")
+(load-file "path/to/woozie.el")
 #+END_SRC
 
 And that is all there is to it. 
-Several functions starting with =oozie-= are now available to aid you in defining Oozie workflows.
+Several functions starting with =woozie-= are now available to aid you in defining Oozie workflows.
 
 * Use Cases
 
-So, what can the Oozie Emacs Lib help you with? Many things, it turns out.
+So, what can Woozie help you with? Many things, it turns out.
 
 ** Workflow Creation
 
 Suppose you want to create a workflow definition.
-Open a buffer where you want to create the workflow file and type =M-x oozie-wf-mk=. 
-Emacs will ask you for the job name to use and create a workfllow XML skeleton.
+Open a buffer where you want to create the workflow file and type =M-x woozie-wf-mk=. 
+Emacs will ask you for the job name to use and create a workflow XML skeleton.
 
 Once you have your workflow skeleton,  the library makes it easy to insert actions.
-All you have to do is select the appropriate =oozie-wf-action-*= function.
+All you have to do is select the appropriate =woozie-wf-action-*= function.
 Calling these functions and providing a couple of parameters should be enough to generate the desired workflow elements.
 
 The following functions are available for creating new actions:
-+ =oozie-wf-action-shell= creates a new shell action.
-+ =oozie-wf-action-hive= creates a new hive action
-+ =oozie-wf-action-email= creates a new email action
++ =woozie-wf-action-shell= creates a new shell action.
++ =woozie-wf-action-hive= creates a new hive action
++ =woozie-wf-action-email= creates a new email action
 
-Of particular interest is the =oozie-wf-action-hive= function. Not only does it create a new action, it also scans
+Of particular interest is the =woozie-wf-action-hive= function. Not only does it create a new action, it also scans
 the corresponding hive script looking for variables (marked by =hivevar:=) and adds them to the xml action definition.
 
 There are also functions that help populate these actions with file, property and argument elements.
 They are:
-+ =oozie-wf-action-property=
-+ =oozie-wf-action-argument=
-+ =oozie-wf-action-file=
++ =woozie-wf-action-property=
++ =woozie-wf-action-argument=
++ =woozie-wf-action-file=
 
-*** Configuration Parameter Discovery
+*** Configuration File Creation
 
-To help with creating your configuration files, you can type =oozie-wf-show-vars= when inside the workflow xml buffer
+To help with creating your configuration files, you can type =woozie-wf-show-vars= when inside the workflow xml buffer
 and  you will get a new buffer with all the variables defined in the workflow.
-If you are inside a hive buffer, =oozie-hive-show-vars= will list all the hive variables.
+If you are inside a hive buffer, =woozie-hive-show-vars= will list all the hive variables.
 
 ** Workflow Validation
 
-Workflow creation is not the only area in which Oozie Emacs Lib adds value.
+Workflow creation is not the only area in which Woozie adds value.
 It can also help by checking and validating the workflow you have created.
 
-You can type  =M-x oozie-wf-validate= and it will check whether:
+You can type  =M-x woozie-wf-validate= and it will check whether:
 + Action names are unique
 + All transitions are valid
 
 You can also check if the workflow with respect to its configuration file.
-Type =M-x oozie-wf-validate-config=, passing the configuration file as a parameter and Emacs will list all 
+Type =M-x woozie-wf-validate-config=, passing the configuration file as a parameter and Emacs will list all 
 the variables in the workflow definition that are missing from the configuration file.
 
 
 ** Workflow Visualization
 
-OozieEmacsLib supports visualizing Oozie workflows as directed acyclic graphs (DAGs).
+Woozie supports visualizing Oozie workflows as directed acyclic graphs (DAGs).
+If you have =dot=, or some other [[https://graphviz.org/][Graphviz]] tool installed, you can generate (and view) the graph in many different formats.
 Limited support is provided for ASCII art visualization directly on Emacs.
-oozieEmacsLib can also generate DOT files that can then be used by other tools to create DAGS in many different formats.
-Details on both approaches can be found below.
 
+NOTE: Currently workflow visualization supports only the generation of DAGs for the happy path.
+Transitions resulting from errors are not shown.
 
-*** ASCII Visualization
-
-Workflow visualization is currently in its early stages, but it can be used.
-=M-x oozie-wf-mk-ascii= displays an ASCII art representation of the workflow, like the example below:
-
-#+BEGIN_SRC
-      +-------+      
-      | start |      
-      +-------+      
-          |          
-      +-------+      
-      | Step1 |      
-      +-------+      
-          |          
-  +---------------+  
-  | TheSecondStep |  
-  +---------------+  
-          |          
-      +-------+      
-      | StepC |      
-      +-------+      
-          |          
-      +--------+     
-      | TheEnd |     
-      +--------+     
-#+END_SRC
-
-Unfortunately, /it is currently limited to workflows without conditionals or forks/.
 
 *** Dot file visualization
 
-You can also visualize the workflow in the current buffer by running =oozie-wf-mk-dot=.
-This will create a new buffer name =workflow.dot= with a [[https://graphviz.org/doc/info/lang.html][DOT]] file description of the workflow.
-Save the file and then you can use it as input to [[https://graphviz.org/][Graphviz]] or some similar program to generate a workflow graph in several different formats.
+If you have dot installed, (and in your path), you can visualize the workflow in the current buffer by running =woozie-wf-view-dag=.
+This will ask for which image type you want to create (defaults to PNG) and display it in a new buffer.
+Running it on our [[../testdata/simplegraphworkflow.xml][sample workflow]] will result in something like this:
 
-Running =oozie-wf-mk-dot= on the example above generates the following output:
+
+[[./workflow.png]]
+
+If you want more control, you can create a  [[https://graphviz.org/doc/info/lang.html][DOT]] file describing the workflow by running =woozie-wf-mk-dot=.
+Edit this file to your heart's content to change shapes, colors, labels and anything else you might want.
+Save the file and then you can use it as input to [[https://graphviz.org/][Graphviz]] or some similar system to generate a workflow graph in several different formats.
+
+For example, running =woozie-wf-mk-dot= on the example workflow generates the following output:
 #+BEGIN_SRC
 strict digraph {
 
@@ -134,17 +114,11 @@ We can run it through the dot program to generate a png file by typing
 dot -Tpng -oworkflow.png workflow.dot 
 #+END_SRC
 
-And get the result shown below:
-
-[[./workflow.png]]
-
-If you have =dot= installed in your system (and in the path), you can just run =oozie-wf-view-dag= to have emacs create
-and display the DAG in any dot-supported format you want. Default is PNG.
 
 **** Changing the Color and Shape of Nodes in the Generated DOT File
 
 If you don't like the shape and colors of the different nodes in your workflow graph, you can change them easily.
-Just modify the variable =oozie-dot-node-attribs= and define the desired node attributes for the different workflow node types.
+Just modify the variable =woozie-dot-node-attribs= and define the desired node attributes for the different workflow node types.
 It stores an association (map) between node type and node attributes to use.
 The default value of the variable is as follows:
 
@@ -161,16 +135,45 @@ You can change the value of the attributes of the list by adding them to the beg
 For example, to change the color of action nodes to be red you could do the following:
 
 #+BEGIN_SRC emacs-lisp
-  (cons (cons 'action "[color=RED]") oozie-dot-node-attribs))
+  (cons (cons 'action "[color=RED]") woozie-dot-node-attribs))
 #+END_SRC
 
 Thought not strictly necessary, you can remove the older key-value pair by calling =assq-delete-all= before adding the new value.
 
 
+*** ASCII Visualization
+
+Woozie also has the ability to generate a very limited ASCII art representation of the workflow by running =woozie-wf-mk-ascii= on the current workflow buffer.
+As of this writing it is limited to creating only single path workflows, with no decision or fork/join nodes.
+Running it on our example workflow resulted in the figure below:
+
+#+BEGIN_SRC
+      +-------+      
+      | start |      
+      +-------+      
+          |          
+      +-------+      
+      | Step1 |      
+      +-------+      
+          |          
+  +---------------+  
+  | TheSecondStep |  
+  +---------------+  
+          |          
+      +-------+      
+      | StepC |      
+      +-------+      
+          |          
+      +--------+     
+      | TheEnd |     
+      +--------+     
+#+END_SRC
+
+
 * What Is Coming Next?
 
-Oozie Emacs Lib still has a lot of room to grow. New features currently planned include:
-+ User-defined templates for the different xml elements
-+ Improving ASCII visualization capabilities to include if-conditionals and forks.
-+ Oozie cli commands for workflow management
+Woozie still has a lot of room to grow. New features currently planned include:
++ User-defined templates for the different xml elements;
++ Improving ASCII visualization capabilities to include if-conditionals and fork/join;
++ Oozie cli commands for workflow management.
 

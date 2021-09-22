@@ -2,7 +2,7 @@
 ;; unit tests for the ooziefuncs package
 ;;
 
-(load-file "ooziefuncs.el")
+(load-file "woozie.el")
 
 ;; helper functions
 
@@ -41,7 +41,7 @@
     (insert "${hivevar:BAR} is defined here too!\n")
     (insert "And a third hivevar: ${hivevar:THIS_ONE}\n")
     (insert "And repeating ${hivevar:FOO} here.")
-    (let ( (hive-vars (oozie--hive-vars-list)))
+    (let ( (hive-vars (woozie--hive-vars-list)))
       (should (string-set= hive-vars '("FOO" "BAR" "THIS_ONE"))))))
 
 (ert-deftest list-wf-vars-test ()
@@ -62,13 +62,13 @@
     </global>
 </workflow>${BAZ} // not proper wf definition, but the code does not care.   
 ")
-    (let ( (wf-vars (oozie--wf-vars-list)) )
+    (let ( (wf-vars (woozie--wf-vars-list)) )
       (should (string-set= wf-vars '("FOO" "BAR" "BAZ"))))))
 
 (ert-deftest valid-wf-var-test ()
   "Make sure we know what is a valid var name and what is a function"
-  (should (oozie-valid-wf-var "a_perfectly_good_name"))
-  (should (not (oozie-valid-wf-var "wf:thisIsAFunctionNotaName()"))))
+  (should (woozie-valid-wf-var "a_perfectly_good_name"))
+  (should (not (woozie-valid-wf-var "wf:thisIsAFunctionNotaName()"))))
 
 (ert-deftest find-delimited-test ()
   "Tests that we can find delimited values appropriately"
@@ -76,10 +76,10 @@
     (insert "This is line {1}\n")
     (insert "This is the {2}nd line.\n")
     (insert "{3}rd line ends it all.")
-    (should (string-set= (oozie--find-all-delimited "{" "}") '("1" "2" "3") ))))
+    (should (string-set= (woozie--find-all-delimited "{" "}") '("1" "2" "3") ))))
 
 (ert-deftest node-names-test ()
-  (should (equal (oozie--wf-flow-node-names test-dom)
+  (should (equal (woozie--wf-flow-node-names test-dom)
 		 '("start" "Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End"))))
 
 (ert-deftest node-transition-test ()
@@ -88,31 +88,31 @@
 	 (join-node (car (dom-by-tag test-dom 'join)))
 	 (decision-node (car (dom-by-tag test-dom 'decision)))
 	 (action-node (car (dom-by-tag test-dom 'action))))
-    (should (equal '(("Fork1" "Parallel1" ok) ("Fork1" "Parallel2" ok)) (oozie--wf-node-transitions fork-node)))
-    (should (equal '(("Join1" "Decision1" ok)) (oozie--wf-node-transitions join-node)))    
-    (should (equal '(("Decision1" "ActionIfTrue" ok) ("Decision1" "ActionIfFalse" ok)) (oozie--wf-node-transitions decision-node)))
-    (should (equal '(("Parallel1" "Join1" ok) ("Parallel1" "ErrorEmail" error)) (oozie--wf-node-transitions action-node)))))
+    (should (equal '(("Fork1" "Parallel1" ok) ("Fork1" "Parallel2" ok)) (woozie--wf-node-transitions fork-node)))
+    (should (equal '(("Join1" "Decision1" ok)) (woozie--wf-node-transitions join-node)))    
+    (should (equal '(("Decision1" "ActionIfTrue" ok) ("Decision1" "ActionIfFalse" ok)) (woozie--wf-node-transitions decision-node)))
+    (should (equal '(("Parallel1" "Join1" ok) ("Parallel1" "ErrorEmail" error)) (woozie--wf-node-transitions action-node)))))
 
 (ert-deftest happy-path-transition-test ()
   "Checks that the happy path is created correctly from incomplete paths"
   (let ( (all-good-path '(("A" "B" ok) ("B" "C" ok) ("A" "C" ok) ("C" "D" ok) ("start" "A" ok)))
 	 (path-with-unreachable (list (list "A" "B" 'ok) (list "B" "C" 'ok) (list "start" "A" 'ok) (list "D" "E" 'ok) (list "E" "F" 'ok))))
-    (should (equal all-good-path (oozie--wf-transitions-hp all-good-path)))
-    (should (equal (list (list "A" "B" 'ok) (list "B" "C" 'ok) (list "start" "A" 'ok)) (oozie--wf-transitions-hp path-with-unreachable)))))
+    (should (equal all-good-path (woozie--wf-transitions-hp all-good-path)))
+    (should (equal (list (list "A" "B" 'ok) (list "B" "C" 'ok) (list "start" "A" 'ok)) (woozie--wf-transitions-hp path-with-unreachable)))))
 
 ;;; tests for visualization function
 
 (ert-deftest str-pad-test ()
   "Tests that string padding works as expected."
-  (should (equal " abc " (oozie--str-pad "abc" 5)))
-  (should (equal "abc"   (oozie--str-pad "abc" 3)))
-  (should (equal "  ab  " (oozie--str-pad "ab" 6)))
-  (should (equal "  abc " (oozie--str-pad "abc" 6))))
+  (should (equal " abc " (woozie--str-pad "abc" 5)))
+  (should (equal "abc"   (woozie--str-pad "abc" 3)))
+  (should (equal "  ab  " (woozie--str-pad "ab" 6)))
+  (should (equal "  abc " (woozie--str-pad "abc" 6))))
 
 (ert-deftest graph-box-test ()
-  "Tests that oozie--graph-box creates box around text"
+  "Tests that woozie--graph-box creates box around text"
   (let ( (box (concat " +-----+\n" " | box |\n" " +-----+\n")))
-    (should (equal box (oozie--graph-box "box" 8)))))
+    (should (equal box (woozie--graph-box "box" 8)))))
 
 
 (ert-deftest graph-end-to-end-test ()
@@ -124,7 +124,7 @@
 	 (output
 	  (with-temp-buffer
 	    (insert-file "testdata/simplegraphworkflow.xml")
-	    (oozie-wf-mk-ascii)
+	    (woozie-wf-mk-ascii)
 	    (buffer-string)))
 	 )
     (should (equal expected output))))
@@ -134,17 +134,17 @@
   "Tests that the node name function returns the value of the name attribute or type of element if name not present."
   (let ( (no-name-node (list 'noname '() (list 'subelement)))
 	 (named-node   (list 'named-node (list (cons 'name "valid-name")))) )
-    (should (equal "noname" (oozie--wf-node-name no-name-node)))
-    (should (equal "valid-name" (oozie--wf-node-name named-node)))))
+    (should (equal "noname" (woozie--wf-node-name no-name-node)))
+    (should (equal "valid-name" (woozie--wf-node-name named-node)))))
 
 (ert-deftest dot-node-desc-test ()
   "Tests that the function that returns the dot-node info returns appropriate values"
-  (should (equal "start [shape=doublecircle]" (oozie--dot-node start-node))))
+  (should (equal "start [shape=doublecircle]" (woozie--dot-node start-node))))
 
 (ert-deftest flow-nodes-test ()
   "Tests that the flow-nodes function returns all flow nodes, including start and end"
-  (let* ( (flow-nodes  (oozie--wf-flow-nodes test-dom))
-	  (node-names  (mapcar 'oozie--wf-node-name flow-nodes)))
+  (let* ( (flow-nodes  (woozie--wf-flow-nodes test-dom))
+	  (node-names  (mapcar 'woozie--wf-node-name flow-nodes)))
     (should (equal node-names
 		  '("start" "Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End")))))
 
@@ -152,17 +152,17 @@
 (ert-deftest nodes-from-transitions-test ()
   "Tests that we extract a proper list of nodes from a list of transitions"
   (let ( (transitions (list (list 'A 'B 'ok) (list 'A 'C 'ok) (list 'B 'D 'ok))))
-    (should (equal (oozie--wf-transition-nodes transitions)
+    (should (equal (woozie--wf-transition-nodes transitions)
 		   '(A B C D)))))
 
 (ert-deftest duplicates-test ()
   "Tests that the function that returns duplicates indeed returns duplicates"
-  (should (equal '() (oozie--list-duplicates '())))
-  (should (equal '() (oozie--list-duplicates '("a"))))
-  (should (equal '() (oozie--list-duplicates '("a" "b"))))
-  (should (equal '("a") (oozie--list-duplicates '("a" "b" "c" "a"))))
-  (should (equal '("b" "a") (oozie--list-duplicates '("a" "a" "b" "c" "d" "b" "e"))))
-  (should (equal '("b" "a") (oozie--list-duplicates '("a" "a" "b" "c" "d" "a" "a" "b")))))
+  (should (equal '() (woozie--list-duplicates '())))
+  (should (equal '() (woozie--list-duplicates '("a"))))
+  (should (equal '() (woozie--list-duplicates '("a" "b"))))
+  (should (equal '("a") (woozie--list-duplicates '("a" "b" "c" "a"))))
+  (should (equal '("b" "a") (woozie--list-duplicates '("a" "a" "b" "c" "d" "b" "e"))))
+  (should (equal '("b" "a") (woozie--list-duplicates '("a" "a" "b" "c" "d" "a" "a" "b")))))
 
 ;; test driver
 (ert-run-tests-batch)

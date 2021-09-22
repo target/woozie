@@ -26,7 +26,7 @@
 
 ;; provides the attributes used in DOT node definitions. Users can  change these values
 ;; to set shape, color, font, etc.
-(defvar oozie-dot-node-attribs (list (cons 'start    "[shape=doublecircle]")
+(defvar woozie-dot-node-attribs (list (cons 'start    "[shape=doublecircle]")
 				     (cons 'end      "[shape=doublecircle]")
 				     (cons 'action   "")
 				     (cons 'fork     "[shape=box]")
@@ -40,7 +40,7 @@
 ;; user (interactive) functions
 ;;----------------------------------------------------------------------------------------
 
-(defun oozie-wf-mk (jobname)
+(defun woozie-wf-mk (jobname)
   "Adds a skeleton workflow definition to the current buffer"
   (interactive "sjob name: ")
   (insert
@@ -83,10 +83,10 @@
 "
    ))
 
-(defun oozie-wf-action-hive (action-name hive-script)
+(defun woozie-wf-action-hive (action-name hive-script)
   "Inserts a oozie workflow hive action"
   (interactive "saction name: \nfhive script: ")
-  (let ( (hivevars (oozie-hive-vars hive-script)))
+  (let ( (hivevars (woozie-hive-vars hive-script)))
     (insert
      "
     <action name=\"" action-name "\" cred=\"hcat_creds\">
@@ -101,7 +101,7 @@
 "
    )))
 
-(defun oozie-wf-action-email (action-name email)
+(defun woozie-wf-action-email (action-name email)
   "Insert an oozie workflow email action"
   (interactive "saction name: \nstargetEmail: ")
   (insert
@@ -119,7 +119,7 @@
 "
    ))
 
-(defun oozie-wf-action-shell (action-name cmd-str)
+(defun woozie-wf-action-shell (action-name cmd-str)
   "inserts an oozie workflow shell action"
   (interactive "saction name: \nscommand (with arguments): ")
   (let ( (script (car (split-string cmd-str)))
@@ -130,7 +130,7 @@
             <exec>" script "</exec>
 ")
     (dolist (argument args)
-      (oozie-argument argument)
+      (woozie-argument argument)
       (insert "\n"))
     (insert "        </shell>
         <ok to=\"end\"/>
@@ -139,7 +139,7 @@
 "
     )))
 
-(defun oozie-wf-action-property (name value)
+(defun woozie-wf-action-property (name value)
   "Inserts a property tag"
   (interactive "sproperty name: \nsproperty value: ")
   (insert
@@ -151,17 +151,17 @@
 "
 	    ))
 
-(defun oozie-wf-action-argument (arg-value)
+(defun woozie-wf-action-argument (arg-value)
   "inserts an argument tag"
   (interactive "sarg value: ")
   (insert "            <argument>" arg-value "</argument>"))
 
-(defun oozie-wf-action-file (filename)
+(defun woozie-wf-action-file (filename)
   "Inserts a file tag"
   (interactive "sfilename: ")-
   (insert "            <file>" filename "</file>"))
 
-(defun oozie-wf-validate ()
+(defun woozie-wf-validate ()
   "Performs validations on the oozie workflow xml defined in the current buffer. This includes:
   * Actions have unique names
   * Transitions are to existing nodes
@@ -170,65 +170,65 @@
   (interactive)
   (let ( (dom (libxml-parse-xml-region (point-min) (point-max))) )
     (with-output-to-temp-buffer "*Oozie*"
-      (oozie--msg "=======================================================")
-      (oozie--msg "Validating workflow.....")
-      (oozie--validate-action-names dom)
-      (oozie--validate-action-transitions dom))))
+      (woozie--msg "=======================================================")
+      (woozie--msg "Validating workflow.....")
+      (woozie--validate-action-names dom)
+      (woozie--validate-action-transitions dom))))
 
-(defun oozie-wf-validate-config (config-file)
+(defun woozie-wf-validate-config (config-file)
   "
 Validates the workflow definiton in the current buffer
 agains the specified CONFIG-FILE. Provides a list of 
 variables not defined in the configuration file."
   (interactive "fConfig file: ")
-  (let* ( (wf-vars (oozie--wf-vars-list) )
-	  (config-vars (oozie--properties-from-file config-file))
+  (let* ( (wf-vars (woozie--wf-vars-list) )
+	  (config-vars (woozie--properties-from-file config-file))
 	  (missing-vars (cl-set-difference wf-vars config-vars :test 'string=)))
     (with-output-to-temp-buffer "*Oozie*"
       (if missing-vars
 	  (progn
-	    (oozie--msg "--- Missing variable definitions:")
+	    (woozie--msg "--- Missing variable definitions:")
 	    (dolist (var missing-vars)
-	      (oozie--msg (concat "---   * " var))))
-	(oozie--msg "+++ All workflow variables are defined.")))))
+	      (woozie--msg (concat "---   * " var))))
+	(woozie--msg "+++ All workflow variables are defined.")))))
 
-(defun oozie-wf-show-vars ()
+(defun woozie-wf-show-vars ()
   "Shows a list of all workflow variables defined in the current buffer"
   (interactive)
-  (oozie--msg-list "Workflow Variables:" (oozie--wf-vars-list)))
+  (woozie--msg-list "Workflow Variables:" (woozie--wf-vars-list)))
 
-(defun oozie-hive-show-vars ()
+(defun woozie-hive-show-vars ()
   "Shows a list of all the hive vars defined in the current buffer.
    A hive var is any field delimited by '${hivevar:' and '}"
   (interactive)
-  (oozie--msg-list "Hive Variables:" (oozie--hive-vars-list)))
+  (woozie--msg-list "Hive Variables:" (woozie--hive-vars-list)))
 
-(defun oozie-wf-mk-ascii ()
+(defun woozie-wf-mk-ascii ()
   "Shows an (ASCII) graph representation of a workflow"
   (interactive)
   (let* ((dom (libxml-parse-xml-region (point-min) (point-max)))
-	 (graph (oozie--graph-build dom))
-	 (happy-path (oozie--graph-path-from "start" graph))
+	 (graph (woozie--graph-build dom))
+	 (happy-path (woozie--graph-path-from "start" graph))
 	 (buf (generate-new-buffer "wfgraph")))
     (switch-to-buffer buf)
-    (oozie--graph-print happy-path)))
+    (woozie--graph-print happy-path)))
 
-(defun oozie-wf-mk-dot ()
+(defun woozie-wf-mk-dot ()
   "Creates a buffer with a dot format representation of the workflow in the current buffer."
   (interactive)
   (let* ( (dom (libxml-parse-xml-region (point-min) (point-max)))
-	  (nodes (oozie--wf-flow-nodes dom))
-	  (ok-transitions (cl-remove-if (lambda (tr) (equal 'error (caddr tr))) (oozie--wf-transitions dom)))
-	  (happy-transitions (oozie--wf-transitions-hp ok-transitions))
-	  (happy-node-names (oozie--wf-transition-nodes happy-transitions))
-	  (happy-nodes (cl-remove-if-not (lambda (n) (member (oozie--wf-node-name n) happy-node-names)) nodes)) 
+	  (nodes (woozie--wf-flow-nodes dom))
+	  (ok-transitions (cl-remove-if (lambda (tr) (equal 'error (caddr tr))) (woozie--wf-transitions dom)))
+	  (happy-transitions (woozie--wf-transitions-hp ok-transitions))
+	  (happy-node-names (woozie--wf-transition-nodes happy-transitions))
+	  (happy-nodes (cl-remove-if-not (lambda (n) (member (woozie--wf-node-name n) happy-node-names)) nodes)) 
 	 )
     
     (switch-to-buffer (generate-new-buffer "workflow.dot"))
     (insert "strict digraph {\n")
     (insert "\n  // nodes\n")
     (dolist (node happy-nodes)
-      (insert " " (oozie--dot-node node) "\n"))
+      (insert " " (woozie--dot-node node) "\n"))
     (insert "\n  // transitions\n")
     (dolist (edge happy-transitions)
       (insert (concat "  " (car edge) " -> " (cadr edge) "\n")))
@@ -244,14 +244,14 @@ variables not defined in the configuration file."
 
       (message "OOZIE: Found dot tool. Defining graph display functions.")
       
-      (defun oozie-wf-view-dag (dag-type)
+      (defun woozie-wf-view-dag (dag-type)
 	"Visualize the workflow in the current buffer as a dag in the format defined by DAG-TYPE. Defaults to PNG"
 	(interactive "simage type (PNG): ")
 	(let* ( (buffer-modified-p nil)
 		(img-type (if (equal "" dag-type) "png" dag-type))
 		(dotfile (concat "/tmp/ooziewf." (number-to-string (emacs-pid)) ".dot"))
 		(outfile (concat "/tmp/ooziewf." (number-to-string (emacs-pid)) "." (downcase img-type))))
-	  (oozie-wf-mk-dot) 
+	  (woozie-wf-mk-dot) 
 	  (write-file dotfile)
 	  (kill-buffer)
 	  (shell-command (concat "dot -T" img-type " " dotfile " > " outfile))
@@ -266,19 +266,19 @@ variables not defined in the configuration file."
 ;; notes:
 ;;  + transitions are represented as a triple: (FROM . TO . type) where type is either 'ok or 'error
 
-(defun oozie--wf-transitions (dom)
+(defun woozie--wf-transitions (dom)
   "Returns a list of all the transitions in the workflow, where each transitions is represented as (from . to).
    If INCLUDE-ERROR is true, also include error transitions"
   (let* ((nodes (dom-children dom)) )
-      (mapcan 'oozie--wf-node-transitions nodes)))
+      (mapcan 'woozie--wf-node-transitions nodes)))
 
-(defun oozie--wf-transition-nodes (transitions)
+(defun woozie--wf-transition-nodes (transitions)
   "Given a list of transitions, returns all the nodes specified in it."
   (let ( (froms (mapcar 'car transitions))
 	 (tos   (mapcar 'cadr transitions)) )
     (delete-dups (append froms tos))))
 
-(defun oozie--wf-transitions-hp (transitions)
+(defun woozie--wf-transitions-hp (transitions)
   "Returns only the happy path transitions for the list.
 
    Happy path is defined as all traversals reachable from node named 'start'."
@@ -286,48 +286,48 @@ variables not defined in the configuration file."
 	  (tos   (cons "start" (mapcar 'cadr transitions)))
 	  (no-in-edge (cl-set-difference froms tos :test #'equal)) )
     (if no-in-edge
-	(oozie--wf-transitions-hp (cl-remove-if (lambda (x) (member (car x) no-in-edge)) transitions))
+	(woozie--wf-transitions-hp (cl-remove-if (lambda (x) (member (car x) no-in-edge)) transitions))
       transitions)))
 
-(defun oozie--wf-node-transitions (node)
+(defun woozie--wf-node-transitions (node)
   "Returns a list containing the transitions for this node, if it is a flow node, return an empty list otherwise.
    If INCLUDE-ERROR is true, also include error transtions"
   (let ( (node-type (dom-tag node)))
     (cond ((equal 'start node-type) (list (list "start" (dom-attr node 'to) 'ok)))
-	  ((equal 'action node-type) (oozie--wf-action-transitions node))
-	  ((equal 'fork node-type) (oozie--wf-fork-transitions node))
+	  ((equal 'action node-type) (woozie--wf-action-transitions node))
+	  ((equal 'fork node-type) (woozie--wf-fork-transitions node))
 	  ((equal 'join node-type) (list (list (dom-attr node 'name) (dom-attr node 'to) 'ok)))
-	  ((equal 'decision node-type) (oozie--wf-decision-transitions node))
+	  ((equal 'decision node-type) (woozie--wf-decision-transitions node))
 	  (t '()))))
 
-(defun oozie--wf-action-transitions (action-node)
+(defun woozie--wf-action-transitions (action-node)
   (let ( (ok-transition (list (dom-attr action-node 'name)    (dom-attr (car (dom-by-tag action-node 'ok)) 'to) 'ok))
 	 (error-transition (list (dom-attr action-node 'name) (dom-attr (car (dom-by-tag action-node 'error)) 'to) 'error)) )
     (list ok-transition error-transition)))
 
 
-(defun oozie--wf-fork-transitions (fork-node)
+(defun woozie--wf-fork-transitions (fork-node)
   "Extracts transitions for a fork node"
   (let ((from (dom-attr fork-node 'name)))
     (mapcar (lambda (path) (list from (dom-attr path 'start) 'ok)) (dom-by-tag fork-node 'path))))
 
-(defun oozie--wf-decision-transitions (decision-node)
+(defun woozie--wf-decision-transitions (decision-node)
   "Extracts transitions for a decision node"
   (let* ((from (dom-attr decision-node 'name))
 	 (switch-node (car (dom-by-tag decision-node 'switch)))
 	 )
     (mapcar (lambda (case) (list from (dom-attr case 'to) 'ok)) (append (dom-by-tag switch-node 'case) (dom-by-tag switch-node 'default)))))
 
-(defun oozie--graph-print (path)
+(defun woozie--graph-print (path)
   "Prints the path as specified."
   (let* ( (width (+ 8 (apply 'max (mapcar 'length path))))
 	  (first-step (car path))
 	  (other-path (cdr path)))
-    (insert (oozie--graph-box first-step width))
+    (insert (woozie--graph-box first-step width))
     (dolist (element other-path)
-      (insert (concat (oozie--str-pad "|" width) "\n" (oozie--graph-box element width))))))
+      (insert (concat (woozie--str-pad "|" width) "\n" (woozie--graph-box element width))))))
 
-(defun oozie--str-pad (str size)
+(defun woozie--str-pad (str size)
   "Pads strings with blanks on both sides to be of the specified size"
   (let* ( (slack (- size (length str)))
 	  (pad (make-string (/ slack 2) ?\s))
@@ -336,30 +336,30 @@ variables not defined in the configuration file."
 	val
       (concat " " val))))
 
-(defun oozie--graph-box (val width)
+(defun woozie--graph-box (val width)
   "Returns an ASCII representation of a box with width WIDTH and text VAL."
   (let* ( (top (concat "+-" (make-string (length val) ?-)  "-+"))
 	  (middle (concat "| " val " |"))
 	  (bottom top))
-    (concat (oozie--str-pad top width) "\n" (oozie--str-pad middle width) "\n" (oozie--str-pad bottom width) "\n")))
+    (concat (woozie--str-pad top width) "\n" (woozie--str-pad middle width) "\n" (woozie--str-pad bottom width) "\n")))
 
-(defun oozie--graph-build (dom)
+(defun woozie--graph-build (dom)
   "Give the xml representation of the workflow, build the corresponding execution graph"
-  (let* ((flow-nodes (cl-remove-if-not 'oozie--wf-is-graph-node (dom-children dom))))
-    (mapcar 'oozie--wf-from-to flow-nodes)))
+  (let* ((flow-nodes (cl-remove-if-not 'woozie--wf-is-graph-node (dom-children dom))))
+    (mapcar 'woozie--wf-from-to flow-nodes)))
 
-(defun oozie--graph-path-from (first-node-name graph)
+(defun woozie--graph-path-from (first-node-name graph)
   (if (not first-node-name)
       '()
-    (cons first-node-name (oozie--graph-path-from (oozie--graph-to first-node-name graph) graph))))
+    (cons first-node-name (woozie--graph-path-from (woozie--graph-to first-node-name graph) graph))))
 
-(defun oozie--graph-to (node-name graph)
+(defun woozie--graph-to (node-name graph)
   (let* ( (current-node (car graph)))
     (cond ( (not graph) graph)
 	  ( (equal node-name (car current-node)) (car (cdr (cdr current-node))))
-	  ( t (oozie--graph-to node-name (cdr graph))))))
+	  ( t (woozie--graph-to node-name (cdr graph))))))
 
-(defun oozie--wf-from-to (flow-node)
+(defun woozie--wf-from-to (flow-node)
   "Return the current node name, its type and the to node for the action"
   (let ( (node-type (dom-tag flow-node)))
     (cond ( (equal node-type 'start)
@@ -371,131 +371,131 @@ variables not defined in the configuration file."
 		  (symbol-name (dom-tag flow-node))
 		  (dom-attr (dom-by-tag flow-node 'ok) 'to))))))
 
-(defun oozie--msg-list (header list)
-  (oozie--msg header)
+(defun woozie--msg-list (header list)
+  (woozie--msg header)
   (dolist (elem list)
-    (oozie--msg elem)))
+    (woozie--msg elem)))
   
-(defun oozie--wf-vars-list ()
+(defun woozie--wf-vars-list ()
   "Returns a list of all vars defined in the current buffer"
   (save-excursion
     (goto-char (point-min))
-    (cl-remove-if-not 'oozie-valid-wf-var (oozie--find-delimited-from-point "${" "}"))))
+    (cl-remove-if-not 'woozie-valid-wf-var (woozie--find-delimited-from-point "${" "}"))))
 
-(defun oozie--properties-from-file (config-file)
+(defun woozie--properties-from-file (config-file)
   "Returns a list of properties defined in CONFIG-FILE"
-  (let ( (lines (oozie--file-as-line-list config-file))
+  (let ( (lines (woozie--file-as-line-list config-file))
 	 (props '() ))
     (dolist (line lines)
       (if (not (string-prefix-p "#" line))
 	  (setq props (cons (substring line 0 (string-match "=" line)) props))))
     props))
 
-(defun oozie--file-as-line-list (filename)
+(defun woozie--file-as-line-list (filename)
   "Returns the contents of FILENAME as a list of strings where each string is one line in the file"
   (with-temp-buffer
     (insert-file-contents filename)
     (split-string (buffer-string) "\n" t)))
   
-(defun oozie--msg (msg)
+(defun woozie--msg (msg)
   (prin1 msg)
   (prin1 "\n"))
 
-(defun oozie--validate-action-transitions (dom)
+(defun woozie--validate-action-transitions (dom)
   "Checks if all action transitions are valid ones"
-  (let* ( (destinations (oozie--wf-flow-node-names dom))
-	  (transitions (oozie--wf-transitions dom))
+  (let* ( (destinations (woozie--wf-flow-node-names dom))
+	  (transitions (woozie--wf-transitions dom))
 	  (transition-destinations (append (mapcar 'cadr transitions) '("start")))
 	  (bad-transitions (cl-remove-if (lambda (x) (member (cadr x) destinations)) transitions))
 	  (unused-actions  (cl-set-difference destinations transition-destinations :test 'string=)))
     (if (or bad-transitions unused-actions)
 	(progn
-	  (oozie--msg "--- TRANSITION ERRORS!")
+	  (woozie--msg "--- TRANSITION ERRORS!")
 	  (dolist (elem bad-transitions)
-	    (oozie--msg (concat "---   bad destination for transition: " (car elem) " -> " (cadr elem))))
+	    (woozie--msg (concat "---   bad destination for transition: " (car elem) " -> " (cadr elem))))
 	  (dolist (elem unused-actions)
-	    (oozie--msg (concat "~~~   no transitions exist to node " elem))))
+	    (woozie--msg (concat "~~~   no transitions exist to node " elem))))
       (progn
-	(oozie--msg "+++ All transitions are valid.")
-	(oozie--msg "+++ All nodes have incoming transitions.")))))
+	(woozie--msg "+++ All transitions are valid.")
+	(woozie--msg "+++ All nodes have incoming transitions.")))))
 
-(defun oozie--validate-action-names (dom)
+(defun woozie--validate-action-names (dom)
   "Prints a report on the *Oozie* buffer on action names. Gives total count and flags names that are not unique."
-  (let* ( (action-names (oozie--wf-flow-node-names dom) )
-	  (repeated-names (oozie--list-duplicates action-names)))
+  (let* ( (action-names (woozie--wf-flow-node-names dom) )
+	  (repeated-names (woozie--list-duplicates action-names)))
     (if repeated-names
       (progn
-	(oozie--msg "--- ACTION ERRORS!")
-	(oozie--msg "--- The following action names are repeated: ")
+	(woozie--msg "--- ACTION ERRORS!")
+	(woozie--msg "--- The following action names are repeated: ")
 	(dolist (elem repeated-names)
-	  (oozie--msg (concat "---    " elem))))
-      (oozie--msg (concat "+++ " (number-to-string (length action-names)) " action names, all unique")))))
+	  (woozie--msg (concat "---    " elem))))
+      (woozie--msg (concat "+++ " (number-to-string (length action-names)) " action names, all unique")))))
 
-(defun oozie--wf-is-flow-node-p (node)
+(defun woozie--wf-is-flow-node-p (node)
   "Returns true if node is a node that participates in a flow"
   (member (dom-tag node) '(start action decision join fork end kill)))
 
 
-(defun oozie--wf-is-graph-node (node)
+(defun woozie--wf-is-graph-node (node)
   (let ( (n (dom-tag node)) )
     (or (equal n 'action)
 	(equal n 'start)
 	(equal n 'end))))
 
-(defun oozie--wf-node-name (node)
+(defun woozie--wf-node-name (node)
   "Returns the value of the name attribute, if the node has one, or the dom-tag/element name if not."
   (let ( (name (dom-attr node 'name)))
     (if name
 	name
       (symbol-name (dom-tag node)))))
 
-(defun oozie--wf-flow-nodes (dom)
+(defun woozie--wf-flow-nodes (dom)
   "Returns all flow nodes in the workflow definition. Flow nodes are all nodes that the workflow can 
    transition through, including `start` and `end`"
   (let ( (top-level-nodes (dom-children dom)))
-    (cl-remove-if-not 'oozie--wf-is-flow-node-p top-level-nodes)))
+    (cl-remove-if-not 'woozie--wf-is-flow-node-p top-level-nodes)))
   
-(defun oozie--wf-flow-node-names (dom)
+(defun woozie--wf-flow-node-names (dom)
   "Returns the names of all flow nodes (action, decision, fork, etc.) in the current buffer xml"
-    (mapcar 'oozie--wf-node-name (oozie--wf-flow-nodes dom)))
+    (mapcar 'woozie--wf-node-name (woozie--wf-flow-nodes dom)))
 
-(defun oozie--dot-node (node)
+(defun woozie--dot-node (node)
   "Returns a string with the DOT node definition."
   (let ( (type (dom-tag node))
-	 (name (oozie--wf-node-name node)))
-    (concat name " " (alist-get type oozie-dot-node-attribs))))
+	 (name (woozie--wf-node-name node)))
+    (concat name " " (alist-get type woozie-dot-node-attribs))))
 
 
 
-(defun oozie--wf-get-attr (attrib nodes)
+(defun woozie--wf-get-attr (attrib nodes)
   "Given a list of nodes, returns a list with the value of _attrib_ for all those nodes."
   (mapcar (lambda (n) (dom-attr n attrib)) nodes))
     
-(defun oozie-config-vars ()
-  "Gets a list of all defined (i.e., in the oozie-vars buffer) variables"
+(defun woozie-config-vars ()
+  "Gets a list of all defined (i.e., in the woozie-vars buffer) variables"
   (let ( (cbuff (current-buffer))
 	 (config-vars '()))
-    (pop-to-buffer "oozie-vars")
+    (pop-to-buffer "woozie-vars")
     (goto-char (point-min))
-    (let ( (cur-line (oozie-get-line)) )
+    (let ( (cur-line (woozie-get-line)) )
       (while cur-line
 	(setq config-vars (cons cur-line config-vars))
 	(forward-line)
-	(setq cur-line (oozie-get-line))))
+	(setq cur-line (woozie-get-line))))
     (pop-to-buffer cbuff)
     config-vars))
 
-(defun oozie--find-all-delimited (delim1 delim2 &optional include-dupes)
+(defun woozie--find-all-delimited (delim1 delim2 &optional include-dupes)
   "
 Finds all strings delimited by DELIM1 and DELIM2 in the current
 current buffer. 
 "
   (save-excursion
     (goto-char (point-min))
-    (oozie--find-delimited-from-point delim1 delim2 include-dupes)))
+    (woozie--find-delimited-from-point delim1 delim2 include-dupes)))
 
 
-(defun oozie--find-delimited-from-point (delim1 delim2 &optional include-dupes)
+(defun woozie--find-delimited-from-point (delim1 delim2 &optional include-dupes)
   "Returns a list with all (possibly unique) values in the current buffer bounded by the two delimiters,
    starting at the current point."
   (let* ( (start (search-forward delim1 nil 't))
@@ -509,22 +509,22 @@ current buffer.
 	(setq end   (progn (search-forward delim2 nil 't) (backward-char) (point)))))
     vals))
 
-(defun oozie--hive-vars-list ()
+(defun woozie--hive-vars-list ()
   "Returns a list of all hive vars defined in the current buffer"
   (save-excursion
     (goto-char (point-min))
-    (oozie--find-delimited-from-point "${hivevar:" "}")))
+    (woozie--find-delimited-from-point "${hivevar:" "}")))
 
-(defun oozie-hive-vars (filename)
+(defun woozie-hive-vars (filename)
   "Gets all the hive vars in FILENAME"
   (with-temp-buffer
     (insert-file-contents filename)
-    (oozie--hive-vars-list)))
+    (woozie--hive-vars-list)))
 
-(defun oozie-valid-wf-var (var)
+(defun woozie-valid-wf-var (var)
   (not (string-prefix-p "wf:" var)))
 
-(defun oozie-get-line ()
+(defun woozie-get-line ()
   "Gets the current line (the one including point) from the current buffer"
   (let ( (start (line-beginning-position))
 	 (end   (line-end-position))
@@ -533,12 +533,12 @@ current buffer.
 	(buffer-substring-no-properties start end)
       '())))
 
-(defun oozie--list-duplicates (l &optional cur-dups)
+(defun woozie--list-duplicates (l &optional cur-dups)
   "Given a list, return all elements that occur more than once."
   (let ( (first (car l))
 	 (rest (cdr l)) )
     (cond ( (equal l '()) cur-dups )
-	  ( (member first cur-dups) (oozie--list-duplicates rest cur-dups))
-	  ( (member first rest)  (oozie--list-duplicates rest (cons first cur-dups)))
-	  ( t  (oozie--list-duplicates rest cur-dups)))))
+	  ( (member first cur-dups) (woozie--list-duplicates rest cur-dups))
+	  ( (member first rest)  (woozie--list-duplicates rest (cons first cur-dups)))
+	  ( t  (woozie--list-duplicates rest cur-dups)))))
    
