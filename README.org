@@ -1,14 +1,15 @@
-* OozieEmacsLib
+* Woozie
 
 
-Oozie functionality in the emacs environment!
+[[https://oozie.apache.org/][Oozie]] functionality in the emacs environment!
 
-This repository includes code for Oozie-related productivity while using Emacs. This includes,
-but is not limited to:
-+ functions for adding xml snippets into a workflow.xml file
-+ functions for validating xml workflows
-+ functions for extracting variable lists from different types of Hadoop/Ooozie files
-+ function for visualizing workflows
+Woozie is an Emacs library with functions that increase Oozie-related productivity.
+This includes, but is not limited to:
++ functions that simplify building workflow definitions;
++ functions that simplify building workflow configuration files;
++ functions for validating workflow definitions;
++ functions for extracting variable lists from different types of Hadoop/Ooozie files;
++ functions for visualizing workflows.
 
 ** User Documentation
 
@@ -21,13 +22,13 @@ To run unit tests for this code: =make=
 
 ** Installation
 
-Installation is straightforward. Just copy the file ooziefuncs.el to your machine and add the following to your emacs configuration:
+Installation is straightforward. Just copy the file =woozie.el= to your machine and add the following to your emacs configuration:
 
 #+BEGIN_SRC emacs-lisp
-(load-file "path/to/ooziefuncs.el")
+(load-file "path/to/woozie.el")
 #+END_SRC
 
-All functions start with `oozie-`, so feel free to use `ctrl-h f oozie-<TAB>` to explore
+All functions start with `woozie-`, so feel free to use `ctrl-h f woozie-<TAB>` to explore
 the available functionality.
 
 
