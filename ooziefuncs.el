@@ -34,7 +34,9 @@
 				     (cons 'decision "[shape=diamond]"))
   "An association list mapping workflow element types to their respective DOT node attributes.")
 
-
+;; these variables the user should not really have to change
+(defvar woozie--msg-buff "*Woozie*"
+  "The temp buffer to which woozie writes its reports")
 
 ;;----------------------------------------------------------------------------------------
 ;; user (interactive) functions
@@ -184,7 +186,8 @@ variables not defined in the configuration file."
   (let* ( (wf-vars (oozie--wf-vars-list) )
 	  (config-vars (oozie--properties-from-file config-file))
 	  (missing-vars (cl-set-difference wf-vars config-vars :test 'string=)))
-    (with-output-to-temp-buffer "*Oozie*"
+    (with-output-to-temp-buffer woozie--msg-buff
+      (switch-to-buffer woozie--msg-buff)
       (if missing-vars
 	  (progn
 	    (oozie--msg "--- Missing variable definitions:")
