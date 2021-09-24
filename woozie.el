@@ -34,7 +34,9 @@
 				     (cons 'decision "[shape=diamond]"))
   "An association list mapping workflow element types to their respective DOT node attributes.")
 
-
+;; these variables the user should not really have to change
+(defvar woozie--msg-buff "*Woozie*"
+  "The temp buffer to which woozie writes its reports")
 
 ;;----------------------------------------------------------------------------------------
 ;; user (interactive) functions
@@ -168,12 +170,15 @@
   * All relevant nodes have incoming transitions
 "
   (interactive)
-  (let ( (dom (libxml-parse-xml-region (point-min) (point-max))) )
-    (with-output-to-temp-buffer "*Oozie*"
+  (let ( (b (current-buffer))
+	 (dom (libxml-parse-xml-region (point-min) (point-max))) )
+    (with-output-to-temp-buffer woozie--msg-buff
+      (switch-to-buffer woozie--msg-buff)
       (woozie--msg "=======================================================")
       (woozie--msg "Validating workflow.....")
       (woozie--validate-action-names dom)
-      (woozie--validate-action-transitions dom))))
+      (woozie--validate-action-transitions dom)
+      (switch-to-buffer b))))
 
 (defun woozie-wf-validate-config (config-file)
   "
@@ -181,16 +186,19 @@ Validates the workflow definiton in the current buffer
 agains the specified CONFIG-FILE. Provides a list of 
 variables not defined in the configuration file."
   (interactive "fConfig file: ")
-  (let* ( (wf-vars (woozie--wf-vars-list) )
+  (let* ( (b (current-buffer))
+	  (wf-vars (woozie--wf-vars-list) )
 	  (config-vars (woozie--properties-from-file config-file))
 	  (missing-vars (cl-set-difference wf-vars config-vars :test 'string=)))
-    (with-output-to-temp-buffer "*Oozie*"
+    (with-output-to-temp-buffer woozie--msg-buff
+      (switch-to-buffer woozie--msg-buff)
       (if missing-vars
 	  (progn
 	    (woozie--msg "--- Missing variable definitions:")
 	    (dolist (var missing-vars)
 	      (woozie--msg (concat "---   * " var))))
-	(woozie--msg "+++ All workflow variables are defined.")))))
+	(woozie--msg "+++ All workflow variables are defined."))
+      (switch-to-buffer b))))
 
 (defun woozie-wf-show-vars ()
   "Shows a list of all workflow variables defined in the current buffer"
@@ -242,7 +250,7 @@ variables not defined in the configuration file."
 (if (string-prefix-p "dot" (shell-command-to-string "dot -V"))
     (progn
 
-      (message "OOZIE: Found dot tool. Defining graph display functions.")
+      (message "WOOZIE: Found dot tool. Defining graph display functions.")
       
       (defun woozie-wf-view-dag (dag-type)
 	"Visualize the workflow in the current buffer as a dag in the format defined by DAG-TYPE. Defaults to PNG"
@@ -398,8 +406,9 @@ variables not defined in the configuration file."
     (split-string (buffer-string) "\n" t)))
   
 (defun woozie--msg (msg)
-  (prin1 msg)
-  (prin1 "\n"))
+  "Adds the message and newline to the current buffer"
+  (insert msg)
+  (insert "\n"))
 
 (defun woozie--validate-action-transitions (dom)
   "Checks if all action transitions are valid ones"
@@ -420,7 +429,7 @@ variables not defined in the configuration file."
 	(woozie--msg "+++ All nodes have incoming transitions.")))))
 
 (defun woozie--validate-action-names (dom)
-  "Prints a report on the *Oozie* buffer on action names. Gives total count and flags names that are not unique."
+  "Prints a report on the *Woozie* buffer on action names. Gives total count and flags names that are not unique."
   (let* ( (action-names (woozie--wf-flow-node-names dom) )
 	  (repeated-names (woozie--list-duplicates action-names)))
     (if repeated-names
