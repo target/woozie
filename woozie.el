@@ -88,7 +88,7 @@
 (defun woozie-wf-action-hive (action-name hive-script)
   "Inserts a oozie workflow hive action"
   (interactive "saction name: \nfhive script: ")
-  (let ( (hivevars (woozie-hive-vars hive-script)))
+  (let ( (hivevars (woozie--hive-vars hive-script)))
     (insert
      "
     <action name=\"" action-name "\" cred=\"hcat_creds\">
@@ -215,7 +215,7 @@ variables not defined in the configuration file."
   "Shows an (ASCII) graph representation of a workflow"
   (interactive)
   (let* ((dom (libxml-parse-xml-region (point-min) (point-max)))
-	 (graph (woozie--graph-build dom))
+	 (graph (woozie--wf-transitions dom))
 	 (happy-path (woozie--graph-path-from "start" graph))
 	 (buf (generate-new-buffer "wfgraph")))
     (switch-to-buffer buf)
@@ -275,8 +275,8 @@ variables not defined in the configuration file."
 ;;  + transitions are represented as a triple: (FROM . TO . type) where type is either 'ok or 'error
 
 (defun woozie--wf-transitions (dom)
-  "Returns a list of all the transitions in the workflow, where each transitions is represented as (from . to).
-   If INCLUDE-ERROR is true, also include error transitions"
+  "Returns a list of all the transitions in the workflow, where each transitions is represented as
+  a list of the form '(FROM TO type) where type is either 'ok or 'error."
   (let* ((nodes (dom-children dom)) )
       (mapcan 'woozie--wf-node-transitions nodes)))
 
@@ -351,21 +351,20 @@ variables not defined in the configuration file."
 	  (bottom top))
     (concat (woozie--str-pad top width) "\n" (woozie--str-pad middle width) "\n" (woozie--str-pad bottom width) "\n")))
 
-(defun woozie--graph-build (dom)
-  "Give the xml representation of the workflow, build the corresponding execution graph"
-  (let* ((flow-nodes (cl-remove-if-not 'woozie--wf-is-graph-node (dom-children dom))))
-    (mapcar 'woozie--wf-from-to flow-nodes)))
+(defun woozie--graph-path-from (first-node-name transitions)
+  "Given a starting FIRST-NODE-NAME and a the  workflow's TRANSITIONS, return a list of the names of the nodes traversed from start to end."
+  (if first-node-name
+      (cons first-node-name (woozie--graph-path-from (woozie--graph-to first-node-name transitions) transitions))
+    '()))
 
-(defun woozie--graph-path-from (first-node-name graph)
-  (if (not first-node-name)
-      '()
-    (cons first-node-name (woozie--graph-path-from (woozie--graph-to first-node-name graph) graph))))
+(defun woozie--graph-to (node-name transitions)
+  "Returns the name of the ok node transitioned to from NODE-NAME in the list of TRANSITIONS."
+  (let* ( (cur-transition (car transitions)))
+    (cond ( (not transitions) nil )
+	  ( (and (equal node-name (car cur-transition))
+		 (equal 'ok  (caddr cur-transition))) (cadr cur-transition))
+	  ( t (woozie--graph-to node-name (cdr transitions))))))
 
-(defun woozie--graph-to (node-name graph)
-  (let* ( (current-node (car graph)))
-    (cond ( (not graph) graph)
-	  ( (equal node-name (car current-node)) (car (cdr (cdr current-node))))
-	  ( t (woozie--graph-to node-name (cdr graph))))))
 
 (defun woozie--wf-from-to (flow-node)
   "Return the current node name, its type and the to node for the action"
@@ -388,7 +387,7 @@ variables not defined in the configuration file."
   "Returns a list of all vars defined in the current buffer"
   (save-excursion
     (goto-char (point-min))
-    (cl-remove-if-not 'woozie-valid-wf-var (woozie--find-delimited-from-point "${" "}"))))
+    (cl-remove-if-not 'woozie--valid-wf-var (woozie--find-delimited-from-point "${" "}"))))
 
 (defun woozie--properties-from-file (config-file)
   "Returns a list of properties defined in CONFIG-FILE"
@@ -444,13 +443,6 @@ variables not defined in the configuration file."
   "Returns true if node is a node that participates in a flow"
   (member (dom-tag node) '(start action decision join fork end kill)))
 
-
-(defun woozie--wf-is-graph-node (node)
-  (let ( (n (dom-tag node)) )
-    (or (equal n 'action)
-	(equal n 'start)
-	(equal n 'end))))
-
 (defun woozie--wf-node-name (node)
   "Returns the value of the name attribute, if the node has one, or the dom-tag/element name if not."
   (let ( (name (dom-attr node 'name)))
@@ -474,35 +466,15 @@ variables not defined in the configuration file."
 	 (name (woozie--wf-node-name node)))
     (concat name " " (alist-get type woozie-dot-node-attribs))))
 
-
-
 (defun woozie--wf-get-attr (attrib nodes)
   "Given a list of nodes, returns a list with the value of _attrib_ for all those nodes."
   (mapcar (lambda (n) (dom-attr n attrib)) nodes))
     
-(defun woozie-config-vars ()
-  "Gets a list of all defined (i.e., in the woozie-vars buffer) variables"
-  (let ( (cbuff (current-buffer))
-	 (config-vars '()))
-    (pop-to-buffer "woozie-vars")
-    (goto-char (point-min))
-    (let ( (cur-line (woozie-get-line)) )
-      (while cur-line
-	(setq config-vars (cons cur-line config-vars))
-	(forward-line)
-	(setq cur-line (woozie-get-line))))
-    (pop-to-buffer cbuff)
-    config-vars))
-
 (defun woozie--find-all-delimited (delim1 delim2 &optional include-dupes)
-  "
-Finds all strings delimited by DELIM1 and DELIM2 in the current
-current buffer. 
-"
+ "Finds all strings delimited by DELIM1 and DELIM2 in the current buffer."
   (save-excursion
     (goto-char (point-min))
     (woozie--find-delimited-from-point delim1 delim2 include-dupes)))
-
 
 (defun woozie--find-delimited-from-point (delim1 delim2 &optional include-dupes)
   "Returns a list with all (possibly unique) values in the current buffer bounded by the two delimiters,
@@ -524,16 +496,16 @@ current buffer.
     (goto-char (point-min))
     (woozie--find-delimited-from-point "${hivevar:" "}")))
 
-(defun woozie-hive-vars (filename)
+(defun woozie--hive-vars (filename)
   "Gets all the hive vars in FILENAME"
   (with-temp-buffer
     (insert-file-contents filename)
     (woozie--hive-vars-list)))
 
-(defun woozie-valid-wf-var (var)
+(defun woozie--valid-wf-var (var)
   (not (string-prefix-p "wf:" var)))
 
-(defun woozie-get-line ()
+(defun woozie--get-line ()
   "Gets the current line (the one including point) from the current buffer"
   (let ( (start (line-beginning-position))
 	 (end   (line-end-position))

@@ -67,8 +67,8 @@
 
 (ert-deftest valid-wf-var-test ()
   "Make sure we know what is a valid var name and what is a function"
-  (should (woozie-valid-wf-var "a_perfectly_good_name"))
-  (should (not (woozie-valid-wf-var "wf:thisIsAFunctionNotaName()"))))
+  (should (woozie--valid-wf-var "a_perfectly_good_name"))
+  (should (not (woozie--valid-wf-var "wf:thisIsAFunctionNotaName()"))))
 
 (ert-deftest find-delimited-test ()
   "Tests that we can find delimited values appropriately"
