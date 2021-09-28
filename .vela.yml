@@ -8,5 +8,6 @@ steps:
       branch: [ main ]
       event: push
     commands:
-      - make
+      # wanted to use make, but this image does not have make
+      - emacs --script ./woozietest.el
 
