@@ -1,0 +1,12 @@
+version: 1
+
+steps:
+  ## step 1 (and only) - run tests
+  - name: build
+    image: silex/emacs:27
+    ruleset:
+      branch: [ main ]
+      event: push
+    commands:
+      - make
+
