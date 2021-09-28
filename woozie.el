@@ -26,18 +26,16 @@
 
 ;; provides the attributes used in DOT node definitions. Users can  change these values
 ;; to set shape, color, font, etc.
-(defvar woozie-dot-node-attribs (list (cons 'start    "[shape=doublecircle]")
-				     (cons 'end      "[shape=doublecircle]")
-				     (cons 'action   "")
-				     (cons 'fork     "[shape=box]")
-				     (cons 'join     "[shape=box]")
-				     (cons 'decision "[shape=diamond]"))
-  "An association list mapping workflow element types to their respective DOT node attributes.")
+(defvar woozie-dot-node-attribs '((start    . "[shape=doublecircle]")
+				  (end      . "[shape=doublecircle]")
+				  (action   . "")
+				  (fork     . "[shape=box]")
+				  (join     . "[shape=box]")
+				  (decision . "[shape=diamond]"))
+    "An association list mapping workflow element types to their respective DOT node attributes.")
 
 ;; these variables the user should not really have to change
-(defvar woozie--msg-buff "*Woozie*"
-  "The temp buffer to which woozie writes its reports")
-
+(setq woozie--msg-buff "*Woozie*") ;;  The temp buffer to which woozie writes its reports"
 ;;----------------------------------------------------------------------------------------
 ;; user (interactive) functions
 ;;----------------------------------------------------------------------------------------
@@ -290,6 +288,10 @@ variables not defined in the configuration file."
   "Returns only the happy path transitions for the list.
 
    Happy path is defined as all traversals reachable from node named 'start'."
+  ;; note:
+  ;; This is implemented by getting the list of transitions and recursively
+  ;; removing all transitions whose 'FROM' nodes do not appear as TO nodes
+  ;; in some other transition.
   (let* ( (froms (mapcar 'car transitions))
 	  (tos   (cons "start" (mapcar 'cadr transitions)))
 	  (no-in-edge (cl-set-difference froms tos :test #'equal)) )
@@ -309,10 +311,10 @@ variables not defined in the configuration file."
 	  (t '()))))
 
 (defun woozie--wf-action-transitions (action-node)
+  "Extracts transtions for an action node."
   (let ( (ok-transition (list (dom-attr action-node 'name)    (dom-attr (car (dom-by-tag action-node 'ok)) 'to) 'ok))
 	 (error-transition (list (dom-attr action-node 'name) (dom-attr (car (dom-by-tag action-node 'error)) 'to) 'error)) )
     (list ok-transition error-transition)))
-
 
 (defun woozie--wf-fork-transitions (fork-node)
   "Extracts transitions for a fork node"
@@ -390,13 +392,9 @@ variables not defined in the configuration file."
     (cl-remove-if-not 'woozie--valid-wf-var (woozie--find-delimited-from-point "${" "}"))))
 
 (defun woozie--properties-from-file (config-file)
-  "Returns a list of properties defined in CONFIG-FILE"
-  (let ( (lines (woozie--file-as-line-list config-file))
-	 (props '() ))
-    (dolist (line lines)
-      (if (not (string-prefix-p "#" line))
-	  (setq props (cons (substring line 0 (string-match "=" line)) props))))
-    props))
+  "Returns a list of the property names defined in CONFIG_FILE."
+  (let ( (lines (woozie--file-as-line-list config-file)))
+    (mapcan (lambda (l) (if (string-match  "^\\([^#=]+\\)=.*" l) (list (match-string 1 l)) '())) lines)))
 
 (defun woozie--file-as-line-list (filename)
   "Returns the contents of FILENAME as a list of strings where each string is one line in the file"

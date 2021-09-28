@@ -164,6 +164,11 @@
   (should (equal '("b" "a") (woozie--list-duplicates '("a" "a" "b" "c" "d" "b" "e"))))
   (should (equal '("b" "a") (woozie--list-duplicates '("a" "a" "b" "c" "d" "a" "a" "b")))))
 
+(ert-deftest properties-from-file-test ()
+  "Tests that we can successfully extract the list of property names defined in a file"
+  (should (equal (woozie--properties-from-file "testdata/sampleconfig.properties")
+		 '("property1" "property2" "property3"))))
+
 ;; test driver
 (ert-run-tests-batch)
 
