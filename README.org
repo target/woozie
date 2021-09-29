@@ -28,7 +28,7 @@ Installation is straightforward. Just copy the file =woozie.el= to your machine 
 (load-file "path/to/woozie.el")
 #+END_SRC
 
-All functions start with `woozie-`, so feel free to use `ctrl-h f woozie-<TAB>` to explore
+All functions start with `woozie-`, so feel free to use =C-h f woozie-<TAB>= to explore
 the available functionality.
 
 
