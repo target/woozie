@@ -1,4 +1,5 @@
-;;;  -*- lexical-binding: t; -*-
+;;; woozie -- Summary
+;; -*- lexical-binding: t; -*-
 ;; Copyright (c) 2016-2021, Target Corp.
 ;;
 ;; Authors: alexandre.santoro@target.com
@@ -174,7 +175,7 @@
       (switch-to-buffer b))))
 
 (defun woozie-wf-validate-config (config-file)
-  "Validate the workflow definiton in the current buffer against the specified CONFIG-FILE.
+  "Validate the the current buffer workflow against the specified CONFIG-FILE.
 Provides a list of variables not defined in the configuration file."
   (interactive "fConfig file: ")
   (let* ( (b (current-buffer))
@@ -309,7 +310,7 @@ Happy path is defined as all traversals reachable from node named 'start'."
     (list ok-transition error-transition)))
 
 (defun woozie--wf-fork-transitions (fork-node)
-  "Extract transitions for FORK-NODE"
+  "Extract transitions for FORK-NODE."
   (let ((from (dom-attr fork-node 'name)))
     (mapcar (lambda (path) (list from (dom-attr path 'start) 'ok)) (dom-by-tag fork-node 'path))))
 
@@ -519,6 +520,3 @@ CUR-DUPS is for internal use and should be ignored."
 
 (provide 'woozie)
 ;;; woozie.el ends here
-
-
-
