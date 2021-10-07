@@ -13,8 +13,8 @@ This includes, but is not limited to:
 
 ** User Documentation
 
-Including installation instructions and examples, can be found [[./docs/index.org][here]].
-A tutorial on creating workflows with Emacs and Woozie can be found [[./tutorial.org][here]].
++ Instructions on installation and usage can be found [[./docs/index.org][here]].
++ A tutorial on creating workflows with Emacs and Woozie can be found [[./docs/tutorial.org][here]].
 
 ** Running Unit Tests
 
