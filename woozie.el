@@ -195,7 +195,10 @@ Provides a list of variables not defined in the configuration file."
 (defun woozie-wf-show-vars ()
   "Show a list of all workflow variables defined in the current buffer."
   (interactive)
-  (woozie--msg-list "Workflow Variables:" (woozie--wf-vars-list)))
+  (let ( (vars (woozie--wf-vars-list)) )
+    (with-output-to-temp-buffer woozie--msg-buff
+      (switch-to-buffer woozie--msg-buff)
+      (woozie--msg-list "# Workflow Variables:" vars))))
 
 (defun woozie-hive-show-vars ()
   "Show a list of all the hive vars defined in the current buffer.
