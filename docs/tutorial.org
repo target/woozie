@@ -1,0 +1,295 @@
+#+title: Oozie Workflow Creation with Emacs and Woozie
+
+* Motivation
+
+At Target we write a lot of [[https://oozie.apache.org/][Oozie]] workflows. Writing workflows involves writing a lot of XML that then needs to be validated.
+Oozie's CLI tools provide validation against a schema, which guarantees only that the XML is well-formed.
+Duplicate node names, transitions to nowhere and missing variable values are only caught when you actually run the workflow.
+
+This can be a pain, especially if you are not using Emacs.
+If you are (and you should, it's a great productivity tool), then you can load the Woozie package and make writing workflows a breeze.
+Woozie will help you not only with workflow and property file creation, but will also perform validations and allow you to easily produce a graph visualization of your workflow.
+
+
+
+* Setup
+
+Before you can start using Woozie, you have to download it from the [[https://git.target.com/DSEIncubator/Woozie][git repo]].
+The easiest way is to just copy =woozie.el= over to your =~/.emacs.d= directory and add the following to your initialization script:
+
+#+BEGIN_SRC emacs-lisp
+  (load "~/.emacs.d/woozie.el")
+#+END_SRC
+
+Once the file is loaded, you will have a collection of functions, all starting with =woozie-= that will help you create, validate and visualize workflow definitions.
+
+** Key Mapping
+
+Woozie comes without any key mapping. Deciding on a key mapping is up to you.
+My approach is to have all Woozie keys start with "C-c w", followed by a letter for each group, followed by a letter for the command.
+I separate the command into three groups:
++ *a* for (a)dding elements to the workflow definition
++ *v* for (v)alidating the workflow
++ *s* for visualization commands that allow me to (s)ee the workflow's graph.
+
+With these rules, I use the following mapping:
+
+#+BEGIN_SRC emacs-lisp
+  ;; add element commands
+  (define-key global-map "\C-cwaw" 'woozie-wf-mk)
+  (define-key global-map "\C-cwas"  'woozie-wf-action-shell)
+  (define-key global-map "\C-cwah"  'woozie-wf-action-hive)
+  (define-key global-map "\C-cwam"  'woozie-wf-action-mail)
+  ;; validation commands
+  (define-key global-map "\C-cwvw" 'woozie-wf-validate)
+  (define-key global-map "\C-cwvc" 'woozie-wf-validate-config)
+  
+  ;; visualization commands
+  (define-key global-map "\C-cwsd" 'woozie-view-dag)
+  (define-key global-map "\C-cwsa" 'woozie-wf-mk-ascii)
+  
+#+END_SRC
+This is not the complete set of woozie functions, but it contains the ones I use the most. The rest I find by typing
+=M-x woozie-<TAB>= and looking at the completion list.
+
+* Creating Workflows
+
+Once you are set up, you are ready to start creating your Oozie workflow definitions.
+Suppose we want to create a worklflow with three actions named Step1 (a shell action), Step2 (a hive action) and Step3 an email action.
+
+The first step is to open a new buffer and create a new workflow skeleton.
+Type =M-x woozie-mk-wf=, provide a job name for the workflow (we chose MyWorkflow), press return and you will get a buffer that looks like this:
+
+#+BEGIN_SRC xml
+<?xml version="1.0" ?>
+<workflow-app name="MyWorkflow" xmlns="uri:oozie:workflow:0.4">
+
+    <global>
+        <job-tracker>${jobTracker}</job-tracker>
+        <name-node>${nameNode}</name-node>
+        <configuration>
+            <property>
+                <name>mapreduce.job.queuename</name>
+                <value>${queueName}</value>
+            </property>
+        </configuration>
+    </global>
+   
+    <credentials>
+        <credential name='hcat_creds' type='hcat'>
+            <property>
+                <name>hcat.metastore.uri</name>
+                <value>${metastore_uri}</value>
+            </property>
+            <property>
+                <name>hcat.metastore.principal</name>
+                <value>${metastore_principal}</value>
+            </property>
+         </credential>
+    </credentials>	
+
+    <start to="INSERT_ACTION_NAME_HERE"/>
+
+    <kill name="Fail">
+        <message>Workflow failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+
+    <end name="end"/>
+
+</workflow-app>
+
+#+END_SRC
+
+** Adding the Shell Action
+
+Now you can start adding the steps. Move the cursor to where you want to add the first action element and
+run =woozie-wf-action-shell= providing the name of the action, the node to transition to on success and the
+command to run. For this example we chose Step1, Step2 and `ls -l` respectively.
+This results in the following code being added to the workflow buffer:
+
+#+BEGIN_SRC xml
+  
+  <action name="Step1" cred="hcat_creds">
+      <shell xmlns="uri:oozie:shell-action:0.3">
+          <exec>ls</exec>
+          <argument>-l</argument>
+      </shell>
+      <ok to="Step2"/>
+      <error to="Fail" />
+  </action>
+#+END_SRC
+
+** Adding the Hive action
+
+To add Step2, the hive action, we do pretty much the same things as before, placing the cursor on where we want the new element to be inserted. We then run =M-x woozie-wf-action-hive= passing the action name, the name of the node to transition to, and the path to the hive script.
+The function will extract all the hive variables from the script and add them to the element definition.
+
+So, for example, if we name the action Step2, the next transition Step3 and pass the name of a hive script with the following content:
+
+#+BEGIN_SRC sql
+use ${hivevar:mydb};
+  
+select * from ${hivevar:mytable} as T where T.a > 0;
+#+END_SRC
+
+We would get the following element added to our workflow:
+
+#+BEGIN_SRC xml
+  
+    <action name="Step2" cred="hcat_creds">
+        <hive xmlns="uri:oozie:hive-action:0.5">
+            <script>foo.hql</script>
+            <param>mytable=${mytable}</param>
+            <param>mydb=${mydb}</param>
+        </hive>
+        <ok to="Step3"/>
+        <error to="Fail"/>
+    </action>
+
+#+END_SRC
+
+** Adding the Email Action
+
+Finally, we want to add a final step, Step3, that will send an email communicating the successful completion of the workflow.
+For this we place the cursor where we want to add the new node and  execute the =woozie-action-email= action.
+Pass it the action name, the node to transition to and the email to send it to, and you get something like this (we used =Step3=, =end=, and =none@nowhere.com= respectively):
+
+#+BEGIN_SRC xml
+
+    <action name="Step3">
+        <email xmlns="uri:oozie:email-action:0.1">
+            <to>none@nowhere.com</to>
+            <subject></subject>
+            <body>
+            </body>
+        </email>
+        <ok to="end"/>
+        <error to="Fail"/>
+    </action>
+
+#+END_SRC
+Now you just need to edit the element adding the values for body and subject and you are done!
+
+
+* Validating Workflows
+
+At this point we think we have finished defining our workflow and that we are good to go. Normally at this point we would save the file, deploy the workflow and test it in Oozie to make sure things are working fine. That would take some time
+
+Woozie allows you to validate your workflow before you even save the file, making sure that all element names and transitions are valid.
+To do this we run =M-x woozie-wf-validate= on the buffer with our workflow definition. Running this on the workflow we have been creating results in the following message:
+
+#+BEGIN_SRC
+=======================================================
+Validating workflow.....
++++ 6 node names, all unique
+--- TRANSITION ERRORS!
+---   bad destination for transition: start -> INSERT_ACTION_NAME_HERE
+~~~   no transitions exist to node Step1
+#+END_SRC
+
+Oops! There are errors! Apparently we forgot to edit the start node to add the transition to Step1.
+Not a problem, this can be easily corrected. Once corrected, we run =M-x woozie-wf-validate= again and now get the all clear:
+
+#+BEGIN_SRC
+=======================================================
+Validating workflow.....
++++ 6 node names, all unique
++++ All transitions are valid.
++++ All nodes have incoming transitions.
+#+END_SRC
+
+Looks like we are good to go.
+
+* Visualizing Workflows
+
+Finally, as a sanity check, we can visualize our workflow as a directed acyclic graph (DAG).
+This should give us a good sense as to whether we coded the workflow we wanted or not.
+With woozie, viewing the DAG is one command away.
+
+If you have [[https://graphviz.org/][Graphviz dot]] installed and in your path, you can run =M-x woozie-wf-view-dag=
+and view the graph of your workflow right on emacs.
+For the example workflow, this is what we got:
+
+[[./tutorialworkflow.png]]
+
+
+As a bonus, if your DAG is linear, you can also view it as ASCII art.
+=M-x woozie-wf-mk-ascii= will create the image below:
+
+#+BEGIN_SRC
+  +-------+  
+  | start |  
+  +-------+  
+      |      
+  +-------+  
+  | Step1 |  
+  +-------+  
+      |      
+  +-------+  
+  | Step2 |  
+  +-------+  
+      |      
+  +-------+  
+  | Step3 |  
+  +-------+  
+      |      
+   +-----+   
+   | end |   
+   +-----+   
+
+#+END_SRC
+
+* Creating Property Files
+
+With the workflow defined, validated and looking good, we are ready to deploy it and run it on Oozie.
+The only thing missing for that is the property file binding the variables defined in your workflow xml to their actual values.
+In Oozie we do this by creating a property file and Woozie makes it easy by providing a function that extracts all variables defined in the workflow and creating the skeleton of a properties file for you.
+
+Select the buffer with the workflow definition, type =M-x woozie-wf-show-vars= and you will get a list of all the variables defined in the workflow. For our workflow, this is what we got:
+
+#+BEGIN_SRC
+mydb
+mytable
+metastore_principal
+metastore_uri
+queueName
+nameNode
+jobTracker
+#+END_SRC
+
+You can now fill out the buffer with the property values, save it as a =.properties=  file by and you are good to go!
+
+** Validating Property Files
+
+Over time you edit your workflow adding/removing actions and variables to it. As a result, your properties file might fall out of sync with the corresponding workflow definition. Never fear, Woozie can help! The command =M-x woozie-wf-validate-config= can be used to check a properties file against a workflow definition and will list all the workflow variables missing definitions.
+
+For our example, supposed we add a fourth action in our workflow, with a variable named foobar in it, as such:
+
+#+BEGIN_SRC xml
+  
+    <action name="Step4" cred="hcat_creds">
+        <shell xmlns="uri:oozie:shell-action:0.3">
+            <exec>ls</exec>
+            <argument>${foobar}</argument>
+        </shell>
+        <ok to="end"/>
+        <error to="" />
+    </action>
+#+END_SRC
+
+Running the =woozie-wf-validate-config= function would open a message buffer with the following message:
+#+BEGIN_SRC
+--- Missing variable definitions:
+---   * foobar
+#+END_SRC
+This indicates that you need to add a property named foobar to your config file. Once you add it, rerunning the command would result in the following message being output to a temporary buffer:
+
+#+BEGIN_SRC
++++ All workflow variables are defined.
+#+END_SRC
+
+* Final Thoughts
+
+And that is it! With Woozie, creating workflows takes a lot less typing and fewer testing cycles to make sure the workflow definition works and we are not forgetting any variables. With Woozie, creating workflows becomes a much more pleasant experience.
+
+Woozie is still in development, and you can expect more functionality in the future, so visit the repo to see what is happening!
