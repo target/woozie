@@ -73,7 +73,7 @@
 
     <start to=\"INSERT_ACTION_NAME_HERE\"/>
 
-    <kill name=\"KillAction\">
+    <kill name=\"Fail\">
         <message>Workflow failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
     </kill>
 
@@ -83,9 +83,9 @@
 "
    ))
 
-(defun woozie-wf-action-hive (action-name hive-script)
-  "Insert a oozie workflow hive action called ACTION-NAME with the script HIVE-SCRIPT."
-  (interactive "saction name: \nfhive script: ")
+(defun woozie-wf-action-hive (action-name to hive-script)
+  "Insert a oozie workflow hive action called ACTION-NAME , transition to TO and  script HIVE-SCRIPT."
+  (interactive "saction name: \nsto:\nfhive script: ")
   (let ( (hivevars (woozie--hive-vars hive-script)))
     (insert
      "
@@ -95,15 +95,15 @@
     (dolist (hivevar hivevars)
       (insert "            <param>" hivevar "=${" hivevar "}</param>\n"))
     (insert "        </hive>
-        <ok to=\"\"/>
-        <error to=\"\"/>
+        <ok to=\"" to "\"/>
+        <error to=\"Fail\"/>
     </action>
 "
    )))
 
-(defun woozie-wf-action-email (action-name email)
-  "Insert an oozie workflow email action named ACTION-NAME sending email to EMAIL."
-  (interactive "saction name: \nstargetEmail: ")
+(defun woozie-wf-action-email (action-name to email)
+  "Insert an oozie workflow email action named ACTION-NAME, transition to TO and sending email to EMAIL."
+  (interactive "saction name: \nsto:\nstargetEmail: ")
   (insert
    "
     <action name=\"" action-name "\">
@@ -113,15 +113,15 @@
             <body>
             </body>
         </email>
-        <ok to=\"\"/>
-        <error to=\"\"/>
+        <ok to=\"" to "\"/>
+        <error to=\"Fail\"/>
     </action>
 "
    ))
 
-(defun woozie-wf-action-shell (action-name cmd-str)
-  "Insert a shell action named ACTION-NAME with the command defined by CMD-STR."
-  (interactive "saction name: \nscommand (with arguments): ")
+(defun woozie-wf-action-shell (action-name to cmd-str)
+  "Insert a shell action named ACTION-NAME with transition to TO executing CMD-STR."
+  (interactive "saction name: \nsto:\nscommand (with arguments): ")
   (let ( (script (car (split-string cmd-str)))
 	 (args   (cdr (split-string cmd-str))))
     (insert "
@@ -133,8 +133,8 @@
       (woozie-wf-action-argument argument)
       (insert "\n"))
     (insert "        </shell>
-        <ok to=\"end\"/>
-        <error to=\"fail\" />
+        <ok to=\"" to "\"/>
+        <error to=\"Fail\" />
     </action>
 "
     )))
@@ -429,7 +429,7 @@ Happy path is defined as all traversals reachable from node named 'start'."
 	(woozie--msg "--- The following action names are repeated: ")
 	(dolist (elem repeated-names)
 	  (woozie--msg (concat "---    " elem))))
-      (woozie--msg (concat "+++ " (number-to-string (length action-names)) " action names, all unique")))))
+      (woozie--msg (concat "+++ " (number-to-string (length action-names)) " node names, all unique")))))
 
 (defun woozie--wf-is-flow-node-p (node)
   "Return non-nil if NODE participates in a flow."
