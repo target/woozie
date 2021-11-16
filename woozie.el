@@ -502,15 +502,6 @@ Values are unique unless INCLUDE-DUPES is non-nil."
   "Return non-nil if VAR is a valid oozie variable name."
   (not (string-prefix-p "wf:" var)))
 
-(defun woozie--get-line ()
-  "Get the current line (the one including point) from the current buffer."
-  (let ( (start (line-beginning-position))
-	 (end   (line-end-position))
-	 )
-    (if (< start end)
-	(buffer-substring-no-properties start end)
-      '())))
-
 (defun woozie--list-duplicates (l &optional cur-dups)
   "Return all elements in L that occur more than once.
 CUR-DUPS is for internal use and should be ignored."
