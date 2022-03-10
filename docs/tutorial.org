@@ -27,7 +27,7 @@ and you are good to go.
 
 ** Key Mapping
 
-woozie-mode is an extension of the [[https://www.gnu.org/software/emacs/manual/html_node/nxml-mode/Introduction.html][nXML major mode]] and defines key bindings for the most common woozie functions.
+woozie-mode is an extension of the [[https://www.gnu.org/software/emacs/manual/html_node/nxml-mode/Introduction.html][nxml major mode]] and defines key bindings for the most common woozie functions.
 You can see that list at any time by typing =C-h m= when the current buffer is in woozie-mode.
 All the woozie-specific key bindings start with =C-c w=.
 
@@ -39,7 +39,6 @@ All the woozie-specific key bindings start with =C-c w=.
 | C-cwh       | woozie-hive-show-vars     |
 | C-cwa       | woozie-wf-mk-ascii        |
 | C-cwd       | woozie-wf-view-dag        |
-|             |                           |
 |-------------+---------------------------|
 
 
