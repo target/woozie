@@ -22,35 +22,30 @@ The easiest way is to just copy =woozie.el= over to your =~/.emacs.d= directory 
 #+END_SRC
 
 Once the file is loaded, you will have a collection of functions, all starting with =woozie-= that will help you create, validate and visualize workflow definitions.
+Create a buffer where you want to work on your workflow definition, set it to woozie mode by typing =M-x woozie-mode=
+and you are good to go.
 
 ** Key Mapping
 
-Woozie comes without any key mapping. Deciding on a key mapping is up to you.
-My approach is to have all Woozie keys start with "C-c w", followed by a letter for each group, followed by a letter for the command.
-I separate the command into three groups:
-+ *a* for (a)dding elements to the workflow definition
-+ *v* for (v)alidating the workflow
-+ *s* for visualization commands that allow me to (s)ee the workflow's graph.
+woozie-mode is an extension of the [[https://www.gnu.org/software/emacs/manual/html_node/nxml-mode/Introduction.html][nxml major mode]] and defines key bindings for the most common woozie functions.
+You can see that list at any time by typing =C-h m= when the current buffer is in woozie-mode.
+All the woozie-specific key bindings start with =C-c w=.
 
-With these rules, I use the following mapping:
+| key binding | function                  |
+|-------------+---------------------------|
+| C-cwv       | woozie-wf-validate        |
+| C-cws       | woozie-wf-show-vars       |
+| C-cwc       | woozie-wf-validate-config |
+| C-cwh       | woozie-hive-show-vars     |
+| C-cwa       | woozie-wf-mk-ascii        |
+| C-cwd       | woozie-wf-view-dag        |
+|             |                           |
+|-------------+---------------------------|
 
-#+BEGIN_SRC emacs-lisp
-  ;; add element commands
-  (define-key global-map "\C-cwaw" 'woozie-wf-mk)
-  (define-key global-map "\C-cwas"  'woozie-wf-action-shell)
-  (define-key global-map "\C-cwah"  'woozie-wf-action-hive)
-  (define-key global-map "\C-cwam"  'woozie-wf-action-mail)
-  ;; validation commands
-  (define-key global-map "\C-cwvw" 'woozie-wf-validate)
-  (define-key global-map "\C-cwvc" 'woozie-wf-validate-config)
-  
-  ;; visualization commands
-  (define-key global-map "\C-cwsd" 'woozie-view-dag)
-  (define-key global-map "\C-cwsa" 'woozie-wf-mk-ascii)
-  
-#+END_SRC
-This is not the complete set of woozie functions, but it contains the ones I use the most. The rest I find by typing
-=M-x woozie-<TAB>= and looking at the completion list.
+
+This is not the complete set of interactive woozie functions. To see them all type =C-h f woozie<TAB>=.
+
+
 
 * Creating Workflows
 
