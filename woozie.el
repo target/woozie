@@ -36,6 +36,26 @@
 ;; these variables the user should not really have to change
 (defvar woozie--msg-buff "*Woozie*") ;;  The temp buffer to which woozie writes its reports"
 
+;;------------------------------------------------------------------------------------------
+;; woozie-mode definition
+;;------------------------------------------------------------------------------------------
+
+(defvar woozie-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "C-cwv" 'woozie-wf-validate)
+    (define-key map "C-cws" 'woozie-wf-show-vars)
+    (define-key map "C-cwc" 'woozie-wf-validate-config)
+    (define-key map "C-cwh" 'woozie-hive-show-vars)
+    (define-key map "C-cwa" 'woozie-wf-mk-ascii)
+    (define-key map "C-cwd" 'woozie-wf-view-dag)
+    map
+    ))
+  
+(define-derived-mode woozie-mode
+  nxml-mode "woozie"
+  "Major mode squpporting Oozie workflow editing."
+  )
+ 
 ;;----------------------------------------------------------------------------------------
 ;; user (interactive) functions
 ;;----------------------------------------------------------------------------------------
