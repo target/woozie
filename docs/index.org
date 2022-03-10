@@ -23,7 +23,7 @@ Several functions starting with =woozie-= are now available to aid you in creati
 
 Once the file is loaded, you can open a buffer where you will build your workflow XML definition and type =M-x woozie-mode=
 which will set woozie-mode as the buffer's major mode.
-This mode is an extension of the nxml mode included with Emacs for XML processing and extends it with key bindings for
+This mode is an extension of the nXML mode included with Emacs for XML processing and extends it with key bindings for
 creating, validating and visualizing workflows.
 
 For documentation on the mode type =C-hm= when your current buffer is in woozie-mode.
