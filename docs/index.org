@@ -17,7 +17,17 @@ Then copy it to where you want it reside and add the following to your emacs con
 #+END_SRC
 
 And that is all there is to it. 
-Several functions starting with =woozie-= are now available to aid you in defining Oozie workflows.
+Several functions starting with =woozie-= are now available to aid you in creating, visualizing and validating Oozie workflows.
+
+* Woozie Mode
+
+Once the file is loaded, you can open a buffer where you will build your workflow XML definition and type =M-x woozie-mode=
+which will set woozie-mode as the buffer's major mode.
+This mode is an extension of the nXML mode included with Emacs for XML processing and extends it with key bindings for
+creating, validating and visualizing workflows.
+
+For documentation on the mode type =C-hm= when your current buffer is in woozie-mode.
+All woozie key bindings starts with =C-cw=.
 
 * Use Cases
 
