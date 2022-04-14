@@ -185,7 +185,7 @@
   "Perform validations on the oozie workflow xml defined in the current buffer."
   (interactive)
   (let ( (b (current-buffer))
-	 (dom (libxml-parse-xml-region (point-min) (point-max))) )
+	 (dom (woozie--get-wf-root)))
     (with-output-to-temp-buffer woozie--msg-buff
       (switch-to-buffer woozie--msg-buff)
       (woozie--msg "=======================================================")
@@ -229,7 +229,7 @@ A hive var is any field delimited by '${hivevar:' and '}"
 (defun woozie-wf-mk-ascii ()
   "Show an (ASCII) graph representation of a workflow."
   (interactive)
-  (let* ((dom (libxml-parse-xml-region (point-min) (point-max)))
+  (let* ((dom (woozie--get-wf-root))
 	 (graph (woozie--wf-transitions dom))
 	 (happy-path (woozie--graph-path-from "start" graph))
 	 (buf (generate-new-buffer "wfgraph")))
@@ -239,7 +239,7 @@ A hive var is any field delimited by '${hivevar:' and '}"
 (defun woozie-wf-mk-dot ()
   "Create a buffer with a dot format representation of the workflow in the current buffer."
   (interactive)
-  (let* ( (dom (libxml-parse-xml-region (point-min) (point-max)))
+  (let* ( (dom (woozie--get-wf-root))
 	  (nodes (woozie--wf-flow-nodes dom))
 	  (ok-transitions (cl-remove-if (lambda (tr) (equal 'error (caddr tr))) (woozie--wf-transitions dom)))
 	  (happy-transitions (woozie--wf-transitions-hp ok-transitions))
@@ -257,6 +257,8 @@ A hive var is any field delimited by '${hivevar:' and '}"
       (insert (concat "  " (car edge) " -> " (cadr edge) "\n")))
     (insert "}\n")))
 
+
+   
 ;;------------------------------------------------------------------------------------------------
 ;; DOT functions
 ;;
@@ -287,6 +289,11 @@ A hive var is any field delimited by '${hivevar:' and '}"
 
 ;; notes:
 ;;  + transitions are represented as a triple: (FROM . TO . type) where type is either 'ok or 'error
+
+(defun woozie--get-wf-root (&optional dom)
+  "Gets the workflow-app element from the DOM element passed to it or the current buffer."
+  (let ( (dm (if dom dom (libxml-parse-xml-region (point-min) (point-max)))) )
+    (car (dom-by-tag dm 'workflow-app))))
 
 (defun woozie--wf-transitions (dom)
   "Return a list of all the transitions in the workflow specified by DOM.
