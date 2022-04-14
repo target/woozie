@@ -29,6 +29,7 @@
 (setq start-node (car (dom-by-tag test-dom 'start)))
 (setq action-node (car (dom-by-tag test-dom 'action)))
 (setq end-node (car (dom-by-tag test-dom 'end)))
+(setq comment-dom (dom-from-file "testdata/commentworkflow.xml"))
 
 ;;===================================================================================
 ;; TESTS
@@ -148,6 +149,9 @@
     (should (equal node-names
 		  '("start" "Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End")))))
 
+(ert-deftest comment-node-names-test ()
+  (should (equal (woozie--wf-flow-node-names comment-dom)
+		 '("start" "Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End"))))
 
 (ert-deftest nodes-from-transitions-test ()
   "Tests that we extract a proper list of nodes from a list of transitions"

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- same as sample workflow, but with comments everywhere -->
+<workflow-app name="${JOB_NAME}" xmlns="uri:oozie:workflow:0.4">
+
+    <global>
+        <job-tracker>${jobTracker}</job-tracker>
+        <name-node>${nameNode}</name-node>
+        <configuration>
+            <property>
+                <name>mapreduce.job.queuename</name>
+                <value>${queueName}</value>
+            </property>
+        </configuration>
+    </global>
+
+    <credentials>
+        <credential name='hcat_creds' type='hcat'>
+            <property>
+                <name>hcat.metastore.uri</name>
+                <value>${metastore_uri}</value>
+            </property>
+            <property>
+                <name>hcat.metastore.principal</name>
+                <value>${metastore_principal}</value>
+            </property>
+         </credential>
+    </credentials>
+
+    <start to="Fork1"/>
+
+    <!-- comments throughtout the code -->
+
+    <fork name="Fork1">
+        <path start="Parallel1"/>
+        <path start="Parallel2"/>
+    </fork>
+
+    <action name="Parallel1" retry-max="1" retry-interval="1">
+        <shell xmlns="uri:oozie:shell-action:0.3">
+            <exec>config.sh</exec>
+            <file>config.sh</file>
+            <file>config.py</file>
+            <capture-output/>
+        </shell>
+        <ok to="Join1"/>
+        <error to="ErrorEmail"/>
+    </action>
+
+    <action name="Parallel2" retry-max="1" retry-interval="1">
+        <shell xmlns="uri:oozie:shell-action:0.3">
+            <exec>config.sh</exec>
+            <file>config.sh</file>
+            <file>config.py</file>
+            <capture-output/>
+        </shell>
+        <ok to="Join1"/>
+        <error to="ErrorEmail"/>
+    </action>
+
+    <join name="Join1" to="Decision1" />
+    
+    <decision name="Decision1">
+        <switch>
+            <case to="ActionIfTrue">
+                ${wf:actionData('Config')['FIRST_WEEK_OF_MONTH'] eq 'True' ||
+                PROMOMASTER_RUN_MODELER eq 'TRUE'}
+            </case>
+            <default to="ActionIfFalse"/>
+        </switch>
+    </decision>
+
+    <action name="ActionIfTrue">
+        <sub-workflow>
+            <!-- comments throughtout the code -->
+            <app-path>${appWorkflowPath}/modelStateUpdater</app-path>
+            <propagate-configuration/>
+            <configuration>
+                <property>
+                    <name>appWorkflowPath</name>
+                    <value>${appWorkflowPath}/modelStateUpdater</value>
+                </property>
+                <property>
+                    <name>JOB_NAME</name>
+                    <value>promo_modelStateUpdater_${DIV}_${ENV}</value>
+                </property>
+            </configuration>
+        </sub-workflow>
+        <ok to="End"/>
+        <error to="ErrorEmail"/>
+    </action>
+
+    <action name="ActionIfFalse">
+        <email xmlns="uri:oozie:email-action:0.1">
+            <to>${SUPPORT_EMAIL}</to>
+            <subject>A problem has occurred with ${JOB_NAME}</subject>
+            <body>
+                Something went wrong while executing ${JOB_NAME}. Here's the link to the failing workflow:
+                ${hue_url}/${wf:id()}/
+            </body>
+        </email>
+        <ok to="End"/>
+        <error to="KillAction"/>
+    </action>
+
+    <kill name="KillAction">
+        <message>Workflow failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+
+
+    <end name="End"/>
+
+    <!-- comments everywhere we can -->
+</workflow-app>
+    <!-- comments everywhere we can -->
