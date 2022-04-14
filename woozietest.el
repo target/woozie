@@ -149,10 +149,12 @@
     (should (equal node-names
 		  '("start" "Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End")))))
 
-(ert-deftest comment-node-names-test ()
-  (should (equal (woozie--wf-flow-node-names comment-dom)
-		 '("start" "Fork1" "Parallel1" "Parallel2" "Join1" "Decision1" "ActionIfTrue" "ActionIfFalse" "KillAction" "End"))))
+(ert-deftest loading-wf-test ()
+  "Tests that the workflow-app element is retrieved properly whether there are comments before or not."
+  (should (equal 'workflow-app (dom-tag (woozie--get-wf-root test-dom))))
+  (should (equal 'workflow-app (dom-tag (woozie--get-wf-root comment-dom)))))
 
+  
 (ert-deftest nodes-from-transitions-test ()
   "Tests that we extract a proper list of nodes from a list of transitions"
   (let ( (transitions (list (list 'A 'B 'ok) (list 'A 'C 'ok) (list 'B 'D 'ok))))
