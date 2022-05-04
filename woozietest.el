@@ -10,13 +10,13 @@
 ;; HELPER FUNCTIONS
 ;;===================================================================================
 (defun string-set= (l1 l2)
-  "returns l1 (or l2) if sets are equal, 'nil otherwise"
+  "Return L1 (or L2) if sets are equal, 'nil otherwise."
   (and (= (length l1) (length l2))
        (not (cl-set-difference l1 l2 :test 'string=))
        (not (cl-set-difference l2 l1 :test 'string=))))
 
 (defun dom-from-file (filename)
-  "creates dom from xml file defined by FILENAME"
+  "Create dom from xml file defined by FILENAME."
   (with-temp-buffer
     (insert-file-contents filename)
     (libxml-parse-xml-region (point-min) (point-max))))
@@ -34,6 +34,11 @@
 ;;===================================================================================
 ;; TESTS
 ;;===================================================================================
+
+(ert-deftest get-parameter-names-test ()
+  "Checks that parameter name extracting function works as expected."
+  (should (equal '("param1" "param2" "param1") (woozie--wf-param-names test-dom))))
+
 
 (ert-deftest list-hive-vars-test ()
   "Make sure that the hive vars are being properly extracted"
@@ -77,7 +82,8 @@
     (insert "This is line {1}\n")
     (insert "This is the {2}nd line.\n")
     (insert "{3}rd line ends it all.")
-    (should (string-set= (woozie--find-all-delimited "{" "}") '("1" "2" "3") ))))
+    (goto-char (point-min))
+    (should (string-set= (woozie--find-delimited-from-point "{" "}") '("1" "2" "3") ))))
 
 (ert-deftest node-names-test ()
   (should (equal (woozie--wf-flow-node-names test-dom)
