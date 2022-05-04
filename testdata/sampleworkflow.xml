@@ -25,6 +25,21 @@
          </credential>
     </credentials>
 
+    <parameters>
+        <property>
+            <name>param1</name>
+        </property>
+        <property>
+            <name>param2</name>
+            <value>3</value>
+            <description>Something something</description>
+        </property>
+        <property>
+            <name>param1</name>
+            <value>4</value>
+        </property>
+    </parameters>
+    
     <start to="Fork1"/>
 
     <fork name="Fork1">
