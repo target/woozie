@@ -416,7 +416,6 @@ Happy path is defined as all traversals reachable from node named 'start'."
   (let ( (cb (current-buffer)))
     (save-excursion
       (switch-to-buffer (buffer-name bfer))
-      (woozie--msg (concat "buffer in save-excursion:" (buffer-name (current-buffer))))
       (goto-char (point-min))
       (cl-remove-if-not 'woozie--valid-wf-var (woozie--find-delimited-from-point "${" "}")))
     ))
@@ -472,8 +471,8 @@ Happy path is defined as all traversals reachable from node named 'start'."
   (let* ( (param-names (woozie--wf-param-names dom))
 	  (var-names (woozie--wf-vars-list b))
 	  (repeated-names (woozie--list-duplicates param-names))
-	  (unused-names   (cl-set-difference param-names var-names))
-	  (undefined-names (cl-set-difference var-names param-names))
+	  (unused-names   (cl-set-difference param-names var-names :test #'string=))
+	  (undefined-names (cl-set-difference var-names param-names :test #'string=))
 	  )
     (woozie--msg (concat (number-to-string (length var-names)) " variables found"))
     (woozie--msg (concat (number-to-string (length param-names)) " parameters found."))
