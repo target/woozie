@@ -203,7 +203,9 @@ Provides a list of variables not defined in the configuration file."
   (let* ( (b (current-buffer))
 	  (wf-vars (woozie--wf-vars-list) )
 	  (config-vars (woozie--properties-from-file config-file))
-	  (missing-vars (cl-set-difference wf-vars config-vars :test 'string=)))
+	  (missing-vars (cl-set-difference wf-vars config-vars :test #'string=))
+	  (unused-vars (cl-set-difference config-vars wf-vars :test #'string=))
+	  )
     (with-output-to-temp-buffer woozie--msg-buff
       (switch-to-buffer woozie--msg-buff)
       (if missing-vars
@@ -212,6 +214,12 @@ Provides a list of variables not defined in the configuration file."
 	    (dolist (var missing-vars)
 	      (woozie--msg (concat "---   * " var))))
 	(woozie--msg "+++ All workflow variables are defined."))
+      (if unused-vars
+	  (progn
+	    (woozie--msg "--- Unused variable definitions:")
+	    (dolist (var unused-vars)
+	      (woozie--msg (concat "--- * " var))))
+	(woozie--msg "+++ All config properties are used in the workflow."))
       (switch-to-buffer b))))
 
 (defun woozie-wf-show-vars ()
