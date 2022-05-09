@@ -179,10 +179,24 @@ Validating workflow.....
 --- TRANSITION ERRORS!
 ---   bad destination for transition: start -> INSERT_ACTION_NAME_HERE
 ~~~   no transitions exist to node Step1
+Validating parameters....
+7 variables found
+0 parameters found.
+--- PARAMETER WARNINGS:
+--- The following variables do not have a corresponding parameter definition
+--- mydb
+--- mytable
+--- metastore_principal
+--- metastore_uri
+--- queueName
+--- nameNode
+--- jobTracker
 #+END_SRC
 
-Oops! There are errors! Apparently we forgot to edit the start node to add the transition to Step1.
-Not a problem, this can be easily corrected. Once corrected, we run =M-x woozie-wf-validate= again and now get the all clear:
+Oops! There are errors! And warnings! Woozie analysed all transitions and noticed that the
+=start= node has a transition to a non-existent node named =INSERT_ACTION_NAME_HERE=.
+Apparently we forgot to edit the start node to add the transition to Step1.
+:
 
 #+BEGIN_SRC
 =======================================================
@@ -190,9 +204,67 @@ Validating workflow.....
 +++ 6 node names, all unique
 +++ All transitions are valid.
 +++ All nodes have incoming transitions.
+Validating parameters....
+7 variables found
+8 parameters found.
+--- PARAMETER WARNINGS: 
+--- The following properties are defined but not used in this workflow.
+--- mydb
+--- mytable
+--- metastore_principal
+--- metastore_uri
+--- queueName
+--- nameNode
+--- jobTracker
 #+END_SRC
 
-Looks like we are good to go.
+It looks better now, there are no transition errors but we are still getting some
+parameter-related warnings. Woozie is telling us that it found 10 variables in the
+workflow definition, but no corresponding entry in the =<parameters>= tag.
+This is not wrong, as you are not required to list all variables in the parameters section,
+so we are good to go.
+
+We could, if we wanted add the parameters definitions and have that message go away:
+
+#+BEGIN_SRC xml
+  <parameters>
+      <property>
+	  <name>mydb</name>
+      </property>
+      <property>
+	  <name>mytable</name>
+      </property>
+      <property>
+	  <name>metastore_principal</name>
+      </property>
+      <property>
+	  <name>metastore_uri</name>
+      </property>
+      <property>
+	  <name>queueName</name>
+      </property>
+      <property>
+	  <name>nameNode</name>
+      </property>
+      <property>
+	  <name>jobTracker</name>
+      </property>
+  </parameters>
+#+END_SRC
+
+With that snippet, running =M-x woozie-wf-validate= results in the following output:
+
+#+BEGIN_SRC
+=======================================================
+Validating workflow.....
++++ 6 node names, all unique
++++ All transitions are valid.
++++ All nodes have incoming transitions.
+Validating parameters....
+7 variables found
+8 parameters found.
+#+END_SRC
+
 
 * Visualizing Workflows
 

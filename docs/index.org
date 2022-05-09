@@ -69,12 +69,17 @@ Workflow creation is not the only area in which Woozie adds value.
 It can also help by checking and validating the workflow you have created.
 
 You can type  =M-x woozie-wf-validate= and it will check whether:
-+ Action names are unique
-+ All transitions are valid
++ Action names are unique;
++ All transitions are valid;
++ All action nodes have an incoming transition.
++ All properties defined in the <parameters> element are unique;
++ All properties defined in the <parameters> element correspond to a variable in the workflow;
++ All variables present in the workflows have a corresponding entry in the <parameters> element. 
 
 You can also check if the workflow with respect to its configuration file.
 Type =M-x woozie-wf-validate-config=, passing the configuration file as a parameter and Emacs will list all 
-the variables in the workflow definition that are missing from the configuration file.
+the variables in the workflow definition that are missing from the configuration file, as well as
+the variables in the config file that are not present in the workflow definition.
 
 
 ** Workflow Visualization
