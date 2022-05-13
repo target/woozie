@@ -29,16 +29,16 @@ and you are good to go.
 
 woozie-mode is an extension of the [[https://www.gnu.org/software/emacs/manual/html_node/nxml-mode/Introduction.html][nxml major mode]] and defines key bindings for the most common woozie functions.
 You can see that list at any time by typing =C-h m= when the current buffer is in woozie-mode.
-All the woozie-specific key bindings start with =C-c w=.
+All the woozie-specific key bindings start with =C-c C-w=.
 
 | key binding | function                  |
 |-------------+---------------------------|
-| C-cwv       | woozie-wf-validate        |
-| C-cws       | woozie-wf-show-vars       |
-| C-cwc       | woozie-wf-validate-config |
-| C-cwh       | woozie-hive-show-vars     |
-| C-cwa       | woozie-wf-mk-ascii        |
-| C-cwd       | woozie-wf-view-dag        |
+| C-c C-w v   | woozie-wf-validate        |
+| C-c C-w s   | woozie-wf-show-vars       |
+| C-c C-w c   | woozie-wf-validate-config |
+| C-c C-w h   | woozie-hive-show-vars     |
+| C-c C-w a   | woozie-wf-mk-ascii        |
+| C-c C-w d   | woozie-wf-view-dag        |
 |-------------+---------------------------|
 
 
