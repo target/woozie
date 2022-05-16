@@ -31,6 +31,7 @@ woozie-mode is an extension of the [[https://www.gnu.org/software/emacs/manual/h
 You can see that list at any time by typing =C-h m= when the current buffer is in woozie-mode.
 All the woozie-specific key bindings start with =C-c C-w=.
 
+|-------------+---------------------------|
 | key binding | function                  |
 |-------------+---------------------------|
 | C-c C-w v   | woozie-wf-validate        |
