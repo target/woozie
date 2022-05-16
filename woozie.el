@@ -42,12 +42,12 @@
 
 (defvar woozie-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "C-cwv" 'woozie-wf-validate)
-    (define-key map "C-cws" 'woozie-wf-show-vars)
-    (define-key map "C-cwc" 'woozie-wf-validate-config)
-    (define-key map "C-cwh" 'woozie-hive-show-vars)
-    (define-key map "C-cwa" 'woozie-wf-mk-ascii)
-    (define-key map "C-cwd" 'woozie-wf-view-dag)
+    (define-key map "\C-c\C-wv" 'woozie-wf-validate)
+    (define-key map "\C-c\C-ws" 'woozie-wf-show-vars)
+    (define-key map "\C-c\C-wc" 'woozie-wf-validate-config)
+    (define-key map "\C-c\C-wh" 'woozie-hive-show-vars)
+    (define-key map "\C-c\C-wa" 'woozie-wf-mk-ascii)
+    (define-key map "\C-c\C-wd" 'woozie-wf-view-dag)
     map
     ))
   
