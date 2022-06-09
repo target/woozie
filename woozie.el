@@ -201,9 +201,11 @@
 Provides a list of variables not defined in the configuration file."
   (interactive "fConfig file: ")
   (let* ( (b (current-buffer))
+	  (dom (woozie--get-wf-root))
 	  (wf-vars (woozie--wf-vars-list) )
 	  (config-vars (woozie--properties-from-file config-file))
-	  (missing-vars (cl-set-difference wf-vars config-vars :test #'string=))
+	  (default-vars (woozie--default-properties dom))
+	  (missing-vars (cl-set-difference wf-vars (append config-vars default-vars) :test #'string=))
 	  (unused-vars (cl-set-difference config-vars wf-vars :test #'string=))
 	  )
     (with-output-to-temp-buffer woozie--msg-buff
@@ -508,8 +510,19 @@ Happy path is defined as all traversals reachable from node named 'start'."
   "Return a list of values for all /parameters/property/name elements in the DOM."
   (let ( (parameters-el (car (dom-by-tag dom 'parameters))))
     (mapcar #'dom-text (dom-by-tag parameters-el 'name) )))
+
+(defun woozie--default-properties (dom)
+  "Return a list of properties defined in DOM that have default values."
+  (let* ( (parameters-el (car (dom-by-tag dom 'parameters)) )
+	  (props         (dom-by-tag parameters-el 'property))
+	  (props-with-default (cl-remove-if-not #'woozie--prop-has-default-p props))
+	  )
+    (mapcar (lambda (x) (dom-text (car (dom-by-tag x 'name)))) props-with-default)))
   
-  
+(defun woozie--prop-has-default-p (property-el)
+  "Return non-nil if PROPERTY-EL has a default value."
+  (car (dom-by-tag property-el 'value)))
+
 (defun woozie--wf-is-flow-node-p (node)
   "Return non-nil if NODE participates in a flow."
   (member (dom-tag node) '(start action decision join fork end kill)))
