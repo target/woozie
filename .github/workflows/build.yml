@@ -1,0 +1,12 @@
+name: build-and-test-emacs
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: purcell/setup-emacs@master
+        with:
+          version: 28.1
+      - name: Run tests
+        run: make test
