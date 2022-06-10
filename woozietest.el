@@ -21,6 +21,12 @@
     (insert-file-contents filename)
     (libxml-parse-xml-region (point-min) (point-max))))
 
+(defun dom-from-string (string)
+  "Create a dom from the string passed as parameter"
+  (with-temp-buffer
+    (insert string)
+    (libxml-parse-xml-region (point-min) (point-max))))
+7
 ;;===================================================================================
 ;; FIXTURES
 ;;===================================================================================
@@ -181,7 +187,16 @@
   (should (equal (woozie--properties-from-file "testdata/sampleconfig.properties")
 		 '("property1" "property2" "property3"))))
 
+(ert-deftest property-with-default-predicate-test ()
+  "Tests the woozie--prop-with-default predicate."
+  (should (woozie--prop-has-default-p (dom-from-string "<property><name>foo</name><value>bar</value></property>")))
+  (should (not (woozie--prop-has-default-p (dom-from-string "<property><name>elephant</name></property>")))))
+
+(ert-deftest list-of-default-params-test ()
+  "Test that we get a list of params with default values"
+  (should (equal '("param2" "param1") (woozie--default-properties test-dom)))
+  (should (equal '() (woozie--default-properties comment-dom))))
+
 ;; test driver
 (ert-run-tests-batch)
-
 
