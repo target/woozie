@@ -5,6 +5,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: purcell/setup-emacs@v3.0
+      - uses: purcell/setup-emacs@master
+        with:
+          version: 28.1
       - name: Run tests
         run: make test
