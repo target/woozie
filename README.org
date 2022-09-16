@@ -3,7 +3,7 @@
 
 [[https://oozie.apache.org/][Oozie]] functionality in the emacs environment!
 
-Woozie is an Emacs library with functions that increase Oozie-related productivity.
+Woozie is an Emacs major mode with functions that increase Oozie-related productivity.
 This includes, but is not limited to:
 + functions that simplify building workflow definitions;
 + functions that simplify building workflow configuration files;
@@ -22,14 +22,11 @@ To run unit tests for this code: =make=
 
 ** Installation
 
-Installation is straightforward. Just copy the file =woozie.el= to your machine and add the following to your emacs configuration:
+Installation is straightforward. Download =woozie.el= to your computer and, inside Emacs,
+run =package-install-file=, passing the path to the downloaded file as a parameter.
+Enable =woozie-mode= when you are ready to edit your workflow definition file and you are good
+to go.
 
-#+BEGIN_SRC emacs-lisp
-(load-file "path/to/woozie.el")
-#+END_SRC
-
-All functions start with `woozie-`, so feel free to use =C-h f woozie-<TAB>= to explore
-the available functionality.
 
 
 

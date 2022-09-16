@@ -1,19 +1,22 @@
-;;; woozie -- Summary
+;;; woozie.el --- Utilities for creating Oozie workflows
 ;; -*- lexical-binding: t; -*-
-;; Copyright (c) 2016-2021, Target Corp.
+;;
+;; Copyright (c) 2016-2022 Target Corp.
 ;;
 ;; Authors: alexandre.santoro@target.com
-
-;; Version: 0.2.0
+;; Version: 0.3.0
+;; Package-Requires: ((emacs "27.2"))
+;; Keywords: Oozie, workflow
+;; URL: https://github.com/target/woozie
 
 ;;; Commentary:
 ;;
-;; ooziefuncs contains a collection of functions that simplify creating oozie workflows.
-;; These include functions for:
-;;    * adding actions tot the current workflow.xml buffer
-;;    * extracting variable information from one (or more) workflow.xml files and adding
-;;      them to a config buffer, which can then serve as the basis for creating a confi-
-;;      guration file.
+;; Woozie defines a collection of functions that simplify creating oozie workflows.
+;; Capabilties include:
+;;    * Insertion of workflow XML elements via commands
+;;    * Workflow definition validation;
+;;    * Easy extraction of paramaeters for properties file creation
+;;    * Validation of property files against workflows (indicates unused and missing values)
 ;;    * generating graph representations of the workflow
 ;;
 ;;; Code:
@@ -50,7 +53,8 @@
     (define-key map "\C-c\C-wd" 'woozie-wf-view-dag)
     map
     ))
-  
+
+;;;###autoload
 (define-derived-mode woozie-mode
   nxml-mode "woozie"
   "Major mode supporting Oozie workflow editing."

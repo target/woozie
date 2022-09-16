@@ -2,26 +2,24 @@
 
 * Overview
 
-Woozie is a collection of emacs-lisp functions that aid in the creation and maintenance of Oozie workflows.
-This library makes it easier to create workflow definitions and corresponding configuration files.
+Woozie is an Emacs package that aids in the creation and maintenance of Oozie workflows.
+Its associated major mode, =woozie-mode= provides functionality for creating and validating workflow
+definitions as well as extracting parameters into properties files.
 It can also be used to validate workflows.
 
-* Environment Setup
+* Installation
+
+Setting up is straightforward:
+1. Download =woozie.el= to your machine.
+2. Start Emacs.
+3. Run =M-x package-install-file= and pass the path to where =woozie.el= was downloaded.
 
 
-Setting up Emacs to use this library is trivial.  All you have to do is download  =woozie.el= to your machine.
-Then copy it to where you want it reside and add the following to your emacs configuration file (usually =.emacs= or =.emacs.d/init.el=):
-
-#+BEGIN_SRC emacs-lisp
-(load-file "path/to/woozie.el")
-#+END_SRC
-
-And that is all there is to it. 
-Several functions starting with =woozie-= are now available to aid you in creating, visualizing and validating Oozie workflows.
+And that is all, you are good to go.
 
 * Woozie Mode
 
-Once the file is loaded, you can open a buffer where you will build your workflow XML definition and type =M-x woozie-mode=
+Once the package is installed, you can open a buffer where you will build your workflow XML definition and type =M-x woozie-mode=
 which will set woozie-mode as the buffer's major mode.
 This mode is an extension of the nXML mode included with Emacs for XML processing and extends it with key bindings for
 creating, validating and visualizing workflows.
@@ -187,8 +185,10 @@ Running it on our example workflow resulted in the figure below:
 
 * What Is Coming Next?
 
-Woozie still has a lot of room to grow. New features currently planned include:
+Woozie still has a lot of room to grow. Some of the things we are thinking of are:
 + User-defined templates for the different xml elements;
 + Improving ASCII visualization capabilities to include if-conditionals and fork/join;
-+ Oozie cli commands for workflow management.
++ Functions for installing, starting and monitoring workflows
+
+Check the [[https://github.com/target/woozie/issues][repo's issue section]] to see what we are working on, and add your own requests!
 
