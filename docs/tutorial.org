@@ -15,13 +15,10 @@ Woozie will help you not only with workflow and property file creation, but will
 * Setup
 
 Before you can start using Woozie, you have to download it from the [[https://git.target.com/DSEIncubator/Woozie][git repo]].
-The easiest way is to just copy =woozie.el= over to your =~/.emacs.d= directory and add the following to your initialization script:
+The easiest way is to just copy =woozie.el= over to your =~/.emacs.d= directory and install it via the =M-x package-install-file= command
+once you start Emacs.
 
-#+BEGIN_SRC emacs-lisp
-  (load "~/.emacs.d/woozie.el")
-#+END_SRC
-
-Once the file is loaded, you will have a collection of functions, all starting with =woozie-= that will help you create, validate and visualize workflow definitions.
+Once the pacakge is installed, you will have a new major mode for editing Oozie workflow defintion files.
 Create a buffer where you want to work on your workflow definition, set it to woozie mode by typing =M-x woozie-mode=
 and you are good to go.
 
