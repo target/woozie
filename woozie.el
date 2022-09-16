@@ -34,7 +34,7 @@
 				  (fork     . "[shape=box]")
 				  (join     . "[shape=box]")
 				  (decision . "[shape=diamond]"))
-    "An association list mapping workflow element types to their respective DOT node attributes.")
+    "Alist mapping workflow element types to their DOT node attributes.")
 
 ;; these variables the user should not really have to change
 (defvar woozie--msg-buff "*Woozie*") ;;  The temp buffer to which woozie writes its reports"
@@ -108,7 +108,9 @@
    ))
 
 (defun woozie-wf-action-hive (action-name to hive-script)
-  "Insert a oozie workflow hive action called ACTION-NAME , transition to TO and  script HIVE-SCRIPT."
+  "Insert a hive action element at point named ACTION-NAME.
+TO defines the outgoing transition and HIVE-SCRIPT the script being used.
+Auto-populates the hivevar values from the script."
   (interactive "saction name: \nsto:\nfhive script: ")
   (let ( (hivevars (woozie--hive-vars hive-script)))
     (insert
@@ -126,7 +128,9 @@
    )))
 
 (defun woozie-wf-action-email (action-name to email)
-  "Insert an oozie workflow email action named ACTION-NAME, transition to TO and sending email to EMAIL."
+  "Insert an email action element at point.
+ACTION-NAME defines the name of the element,
+TO defines the outgoing transition and EMAIL the recipient of the email."
   (interactive "saction name: \nsto:\nstargetEmail: ")
   (insert
    "
@@ -253,14 +257,14 @@ A hive var is any field delimited by '${hivevar:' and '}"
     (woozie--graph-print happy-path)))
 
 (defun woozie-wf-mk-dot ()
-  "Create a buffer with a dot format representation of the workflow in the current buffer."
+  "Create a new buffer with a dot format representation of the workflow."
   (interactive)
   (let* ( (dom (woozie--get-wf-root))
 	  (nodes (woozie--wf-flow-nodes dom))
 	  (ok-transitions (cl-remove-if (lambda (tr) (equal 'error (caddr tr))) (woozie--wf-transitions dom)))
 	  (happy-transitions (woozie--wf-transitions-hp ok-transitions))
 	  (happy-node-names (woozie--wf-transition-nodes happy-transitions))
-	  (happy-nodes (cl-remove-if-not (lambda (n) (member (woozie--wf-node-name n) happy-node-names)) nodes)) 
+	  (happy-nodes (cl-remove-if-not (lambda (n) (member (woozie--wf-node-name n) happy-node-names)) nodes))
 	 )
     
     (switch-to-buffer (generate-new-buffer "workflow.dot"))
@@ -286,12 +290,13 @@ A hive var is any field delimited by '${hivevar:' and '}"
       (message "WOOZIE: Found dot tool. Defining graph display functions.")
       
       (defun woozie-wf-view-dag (dag-type)
-	"Visualize the workflow in the current buffer as a dag in the format defined by DAG-TYPE. Defaults to PNG"
+	"Visualize the workflow as a dag in the format defined by DAG-TYPE.
+dag format defaults to PNG.7"
 	(interactive "simage type (PNG): ")
 	(let* ( (img-type (if (equal "" dag-type) "png" dag-type))
 		(dotfile (concat "/tmp/ooziewf." (number-to-string (emacs-pid)) ".dot"))
 		(outfile (concat "/tmp/ooziewf." (number-to-string (emacs-pid)) "." (downcase img-type))))
-	  (woozie-wf-mk-dot) 
+	  (woozie-wf-mk-dot)
 	  (write-file dotfile)
 	  (kill-buffer)
 	  (shell-command (concat "dot -T" img-type " " dotfile " > " outfile))
@@ -307,13 +312,13 @@ A hive var is any field delimited by '${hivevar:' and '}"
 ;;  + transitions are represented as a triple: (FROM . TO . type) where type is either 'ok or 'error
 
 (defun woozie--get-wf-root (&optional dom)
-  "Gets the workflow-app element from the DOM element passed to it or the current buffer."
+  "Gets the workflow-app element from DOM, or the current buffer."
   (let ( (dm (if dom dom (libxml-parse-xml-region (point-min) (point-max)))) )
     (car (dom-by-tag dm 'workflow-app))))
 
 (defun woozie--wf-transitions (dom)
   "Return a list of all the transitions in the workflow specified by DOM.
-Transitions are represented as a list of the form '(FROM TO type) 
+Transitions are represented as a list of the form '(FROM TO type),
 where type is either 'ok or 'error."
   (let* ((nodes (dom-children dom)) )
       (mapcan 'woozie--wf-node-transitions nodes)))
@@ -339,7 +344,7 @@ Happy path is defined as all traversals reachable from node named 'start'."
       transitions)))
 
 (defun woozie--wf-node-transitions (node)
-  "Return a list of the outbound transitions for NODE or an empty list if node has no transitions."
+  "Return a list of the outbound transitions for NODE."
 
   (let ( (node-type (dom-tag node)))
     (cond ((equal 'start node-type) (list (list "start" (dom-attr node 'to) 'ok)))
@@ -399,7 +404,7 @@ Happy path is defined as all traversals reachable from node named 'start'."
     '()))
 
 (defun woozie--graph-to (node-name transitions)
-  "Return thhe name of the node NODE-NAME transitions to from the set of TRANSITIONS."
+  "Return the node namess NODE-NAME transitions to from the set of TRANSITIONS."
   (let* ( (cur-transition (car transitions)))
     (cond ( (not transitions) nil )
 	  ( (and (equal node-name (car cur-transition))
@@ -440,7 +445,7 @@ Happy path is defined as all traversals reachable from node named 'start'."
     (mapcan (lambda (l) (if (string-match  "^\\([^#=]+\\)=.*" l) (list (match-string 1 l)) '())) lines)))
 
 (defun woozie--file-as-line-list (filename)
-  "Return the contents of FILENAME as a list of strings where each string is one line in the file."
+  "Return the contents of FILENAME as a list of lines."
   (with-temp-buffer
     (insert-file-contents filename)
     (split-string (buffer-string) "\n" t)))
@@ -469,7 +474,7 @@ Happy path is defined as all traversals reachable from node named 'start'."
 	(woozie--msg "+++ All nodes have incoming transitions.")))))
 
 (defun woozie--validate-action-names (dom)
-  "Prints a report on the *Woozie* buffer on the action names defined in the workflow DOM."
+  "Print a list of repeated action names, if any, in the workflow DOM."
   (let* ( (action-names (woozie--wf-flow-node-names dom) )
 	  (repeated-names (woozie--list-duplicates action-names)))
     (if repeated-names
@@ -481,7 +486,7 @@ Happy path is defined as all traversals reachable from node named 'start'."
       (woozie--msg (concat "+++ " (number-to-string (length action-names)) " node names, all unique")))))
 
 (defun woozie--validate-parameters (dom b)
-  "Prints a report on the <parameters> section of the DOM and B"
+  "Print a report on the <parameters> section of the DOM and B."
   (let* ( (param-names (woozie--wf-param-names dom))
 	  (var-names (woozie--wf-vars-list b))
 	  (repeated-names (woozie--list-duplicates param-names))
@@ -532,15 +537,20 @@ Happy path is defined as all traversals reachable from node named 'start'."
   (member (dom-tag node) '(start action decision join fork end kill)))
 
 (defun woozie--wf-node-name (node)
-  "Return the value of the name attribute, if NODE has one, or the dom-tag/element name if not."
+  "Return the  name of the NODE.
+
+The name is either the value of the `name` attribute or the element name,
+if the attribute does not exist."
   (let ( (name (dom-attr node 'name)))
     (if name
 	name
       (symbol-name (dom-tag node)))))
 
 (defun woozie--wf-flow-nodes (dom)
-  "Return all flow nodes in the workflow DOM. 
-Flow nodes are all nodes that the workflow can transition through, including `start` and `end`"
+  "Return all flow nodes in the workflow DOM.
+
+Flow nodes are all nodes that the workflow can transition through,
+including `start` and `end`"
   (let ( (top-level-nodes (dom-children dom)))
     (cl-remove-if-not 'woozie--wf-is-flow-node-p top-level-nodes)))
   
@@ -559,7 +569,7 @@ Flow nodes are all nodes that the workflow can transition through, including `st
   (mapcar (lambda (n) (dom-attr n attrib)) nodes))
     
 (defun woozie--find-delimited-from-point (delim1 delim2 &optional include-dupes)
-  "Return a list with all values in the current buffer bounded by DELIM1 and DELIM2.
+  "Return a list of all values in the current buffer bounded by DELIM1 and DELIM2.
 Values are unique unless INCLUDE-DUPES is non-nil."
   (let* ( (start (search-forward delim1 nil 't))
 	  (end   (progn (search-forward delim2 nil 't) (backward-char) (point)))
