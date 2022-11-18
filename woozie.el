@@ -45,21 +45,40 @@
 
 (defvar woozie-mode-map
   (let ((map (make-sparse-keymap)))
+    ;; key bindings
     (define-key map "\C-c\C-wv" 'woozie-wf-validate)
     (define-key map "\C-c\C-ws" 'woozie-wf-show-vars)
     (define-key map "\C-c\C-wc" 'woozie-wf-validate-config)
     (define-key map "\C-c\C-wh" 'woozie-hive-show-vars)
     (define-key map "\C-c\C-wa" 'woozie-wf-mk-ascii)
     (define-key map "\C-c\C-wd" 'woozie-wf-view-dag)
-    map
-    ))
+
+    ;; menu map
+    (define-key map [menu-bar] (make-sparse-keymap))
+    (let ((woozie-map (make-sparse-keymap "Woozie")))
+      (define-key map [menu-bar woozie] (cons "Woozie" woozie-map))
+      (when (string-prefix-p "dot" (shell-command-to-string "dot -V"))
+	(define-key woozie-map [dag] '("View DAG" . woozie-wf-view-dag)))
+      (define-key woozie-map [ascii] '("View ASCII" . woozie-wf-mk-ascii))
+      (define-key woozie-map [sep-dags] '(menu-item "--"))
+      (define-key woozie-map [vars-hive] '("Show Hive Vars" . woozie-hive-show-vars))
+      (define-key woozie-map [vars-xml] '("Show Parameters" . woozie-wf-show-vars))
+      (define-key woozie-map [sep-vars] '(menu-item "--"))
+      (define-key woozie-map [cfg] '("Validate Config" . woozie-wf-validate-config))
+      (define-key woozie-map [xml] '("Validate XML" . woozie-wf-validate))
+      )
+    map))
+
 
 ;;;###autoload
 (define-derived-mode woozie-mode
   nxml-mode "woozie"
   "Major mode supporting Oozie workflow editing."
   )
- 
+
+
+;; now let us create a menu
+
 ;;----------------------------------------------------------------------------------------
 ;; user (interactive) functions
 ;;----------------------------------------------------------------------------------------
